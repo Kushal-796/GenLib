@@ -67,10 +67,8 @@ class _MyAppState extends State<MyApp> {
               bodyMedium: TextStyle(color: Colors.black),
             ),
             fontFamily: 'Roboto',
-            cardTheme: CardTheme(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
+            cardTheme: const CardThemeData(
+              color: Colors.white,
               elevation: 4,
             ),
           ),
@@ -102,12 +100,9 @@ class _MyAppState extends State<MyApp> {
               textColor: Colors.white,
             ),
             fontFamily: 'Roboto',
-            cardTheme: const CardTheme(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(16)),
-              ),
-              color: Color(0xFF3A3A3C),
-              elevation: 6,
+            cardTheme: const CardThemeData(
+              color: Colors.white,
+              elevation: 4,
             ),
             inputDecorationTheme: const InputDecorationTheme(
               filled: true,
