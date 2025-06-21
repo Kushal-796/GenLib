@@ -31,10 +31,12 @@ dependencies:
 #  qr_code_scanner: ^1.0.1
   flutter:
     sdk: flutter
-  firebase_auth: ^4.17.8
+  web: ^0.5.1
+  firebase_core: ^2.32.0
+  firebase_auth: ^4.20.0
   cloud_firestore: ^4.9.2
+  razorpay_flutter: ^1.3.5
   mobile_scanner: ^3.5.2
-  firebase_core: ^2.30.0
   permission_handler: ^11.0.0
   lottie: ^2.6.0
   audioplayers: ^5.2.1
@@ -48,6 +50,12 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter_launcher_icons: ^0.14.3
   intl: ^0.18.1
+
+dependency_overrides:
+  fluttertoast:
+    path: ./fake_toast
+
+
 
 dev_dependencies:
   flutter_test:
