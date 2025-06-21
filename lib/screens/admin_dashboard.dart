@@ -7,6 +7,7 @@ import 'package:libraryqr/screens/login_screen.dart';
 import 'package:libraryqr/screens/admin_available_books_screen.dart';
 import 'package:libraryqr/screens/admin_users_list_screen.dart';
 import 'package:libraryqr/screens/admin_penalty_screen.dart';
+import 'package:libraryqr/screens/admin_manage_books.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -25,6 +26,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     ReturnRequestsScreen(),
     AdminUsersListScreen(),
     AdminPenaltyScreen(),
+    AdminManageBooksScreen(),
   ];
 
   final List<String> _titles = const [
@@ -33,7 +35,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
     'Processed Requests',
     'Return Requests',
     'Users',
-    'Penalty'
+    'Penalty',
+    'Manage Books'
   ];
 
   void _confirmLogout(BuildContext context) {
@@ -170,6 +173,15 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       selected: _selectedIndex == 5,
                       onTap: () {
                         setState(() => _selectedIndex = 5);
+                        Navigator.pop(context);
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.manage_search),
+                      title: const Text('Manage Books'),
+                      selected: _selectedIndex == 6,
+                      onTap: () {
+                        setState(() => _selectedIndex = 6);
                         Navigator.pop(context);
                       },
                     ),
