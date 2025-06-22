@@ -4,62 +4,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class AdminManageBooksScreen extends StatelessWidget {
   const AdminManageBooksScreen({super.key});
 
-  // Future<void> _addBookDialog(BuildContext context) async {
-  //   final bookIdController = TextEditingController();
-  //   final titleController = TextEditingController();
-  //   final authorController = TextEditingController();
-  //   final copiesController = TextEditingController();
-  //
-  //   await showDialog(
-  //     context: context,
-  //     builder: (context) => AlertDialog(
-  //       title: const Text("Add New Book"),
-  //       content: Column(
-  //         mainAxisSize: MainAxisSize.min,
-  //         children: [
-  //           TextField(controller: bookIdController, decoration: const InputDecoration(labelText: "Book ID")),
-  //           TextField(controller: titleController, decoration: const InputDecoration(labelText: "Title")),
-  //           TextField(controller: authorController, decoration: const InputDecoration(labelText: "Author")),
-  //           TextField(
-  //             controller: copiesController,
-  //             decoration: const InputDecoration(labelText: "Number of Copies"),
-  //             keyboardType: TextInputType.number,
-  //           ),
-  //         ],
-  //       ),
-  //       actions: [
-  //         TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-  //         ElevatedButton(
-  //           onPressed: () async {
-  //             final bookId = bookIdController.text.trim();
-  //             final title = titleController.text.trim();
-  //             final author = authorController.text.trim();
-  //             final copies = int.tryParse(copiesController.text.trim());
-  //
-  //             if (bookId.isNotEmpty && title.isNotEmpty && author.isNotEmpty && copies != null) {
-  //               await FirebaseFirestore.instance.collection('books').doc(bookId).set({
-  //                 'title': title,
-  //                 'author': author,
-  //                 'copies': copies,
-  //               });
-  //               Navigator.pop(context);
-  //               ScaffoldMessenger.of(context).showSnackBar(
-  //                 const SnackBar(content: Text("✅ Book added successfully")),
-  //               );
-  //             }
-  //           },
-  //           child: const Text("Add Book"),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
-
   Future<void> _addBookDialog(BuildContext context) async {
     final bookIdController = TextEditingController();
     final titleController = TextEditingController();
     final authorController = TextEditingController();
-    final copiesController = TextEditingController();
+    final countController = TextEditingController();
 
     await showDialog(
       context: context,
@@ -68,31 +17,43 @@ class AdminManageBooksScreen extends StatelessWidget {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: bookIdController, decoration: const InputDecoration(labelText: "Book ID")),
-            TextField(controller: titleController, decoration: const InputDecoration(labelText: "Title")),
-            TextField(controller: authorController, decoration: const InputDecoration(labelText: "Author")),
             TextField(
-              controller: copiesController,
+              controller: bookIdController,
+              decoration: const InputDecoration(labelText: "Book ID"),
+            ),
+            TextField(
+              controller: titleController,
+              decoration: const InputDecoration(labelText: "Title"),
+            ),
+            TextField(
+              controller: authorController,
+              decoration: const InputDecoration(labelText: "Author"),
+            ),
+            TextField(
+              controller: countController,
               decoration: const InputDecoration(labelText: "Number of Copies"),
               keyboardType: TextInputType.number,
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
           ElevatedButton(
             onPressed: () async {
               final bookId = bookIdController.text.trim();
               final title = titleController.text.trim();
               final author = authorController.text.trim();
-              final copies = int.tryParse(copiesController.text.trim());
+              final count = int.tryParse(countController.text.trim());
 
-              if (bookId.isNotEmpty && title.isNotEmpty && author.isNotEmpty && copies != null) {
+              if (bookId.isNotEmpty && title.isNotEmpty && author.isNotEmpty && count != null) {
                 await FirebaseFirestore.instance.collection('books').doc(bookId).set({
                   'bookId': bookId,
                   'title': title,
                   'author': author,
-                  'copies': copies,
+                  'count': count,
                   'isAvailable': true,
                 });
 

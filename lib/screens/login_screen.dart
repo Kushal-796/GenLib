@@ -56,6 +56,48 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  void _showForgotPasswordDialog() {
+    final emailResetController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Reset Password"),
+        content: TextField(
+          controller: emailResetController,
+          decoration: const InputDecoration(labelText: "Enter your email"),
+          keyboardType: TextInputType.emailAddress,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final email = emailResetController.text.trim();
+              if (email.isNotEmpty) {
+                try {
+                  await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("📩 Password reset link sent!")),
+                  );
+                } catch (e) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("⚠️ Error: $e")),
+                  );
+                }
+              }
+            },
+            child: const Text("Send Reset Link"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -83,6 +125,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   : ElevatedButton(
                 onPressed: _login,
                 child: const Text('Login'),
+              ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: _showForgotPasswordDialog,
+                child: const Text("Forgot Password?"),
               ),
             ],
           ),
