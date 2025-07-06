@@ -1,135 +1,138 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:libraryqr/screens/book_detail_screen.dart';
-import 'package:libraryqr/screens/alerts_screen.dart';
 import 'package:libraryqr/widgets/app_drawer.dart';
 
 class BookListScreen extends StatefulWidget {
-  final VoidCallback onToggleTheme;
-  const BookListScreen({Key? key, required this.onToggleTheme}) : super(key: key);
+  const BookListScreen({super.key});
 
   @override
   State<BookListScreen> createState() => _BookListScreenState();
 }
 
 class _BookListScreenState extends State<BookListScreen> {
-  Stream<QuerySnapshot> getAvailableBooksStream() {
-    return FirebaseFirestore.instance
+  late Stream<QuerySnapshot> booksStream;
+  String? selectedGenre;
+
+  @override
+  void initState() {
+    super.initState();
+    _resetBookStream();
+  }
+
+  void _resetBookStream() {
+    booksStream = FirebaseFirestore.instance
         .collection('books')
         .where('isAvailable', isEqualTo: true)
         .snapshots();
   }
 
-  Future<String?> checkRequestStatus(String bookId) async {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    final query = await FirebaseFirestore.instance
-        .collection('lending_requests')
-        .where('userId', isEqualTo: userId)
-        .where('bookId', isEqualTo: bookId)
-        .orderBy('timestamp', descending: true)
-        .limit(1)
-        .get();
-
-    if (query.docs.isNotEmpty) {
-      return query.docs.first['status'];
-    }
-
-    return null;
-  }
-
-  Stream<bool> hasUnreadAlerts() {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    return FirebaseFirestore.instance
-        .collection('alerts')
-        .where('userId', isEqualTo: userId)
-        .where('isRead', isEqualTo: false)
-        .snapshots()
-        .map((snapshot) => snapshot.docs.isNotEmpty);
+  void filterBooksByGenre(String? genre) {
+    setState(() {
+      if (selectedGenre == genre) {
+        selectedGenre = null;
+        _resetBookStream();
+      } else {
+        selectedGenre = genre;
+        booksStream = FirebaseFirestore.instance
+            .collection('books')
+            .where('genre', isEqualTo: genre)
+            .where('isAvailable', isEqualTo: true)
+            .snapshots();
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF3FAF8),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF91D7C3),
-        title: const Text('Available Books', style: TextStyle(color: Colors.black)),
-        iconTheme: const IconThemeData(color: Colors.black),
-        actions: [
-          StreamBuilder<bool>(
-            stream: hasUnreadAlerts(),
-            builder: (context, snapshot) {
-              final hasUnread = snapshot.data ?? false;
-
-              return Stack(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.notifications),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => AlertsScreen(onToggleTheme: widget.onToggleTheme),
-                        ),
-                      );
-                    },
-                  ),
-                  if (hasUnread)
-                    Positioned(
-                      right: 11,
-                      top: 11,
-                      child: Container(
-                        width: 10,
-                        height: 10,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.red,
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            },
+        backgroundColor: const Color(0xFFF3FAF8),
+        elevation: 0,
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.chevron_right, color: Color(0xFF00253A), size: 32),
+            onPressed: () => Scaffold.of(context).openDrawer(),
           ),
-        ],
-
+        ),
+        title: const Text(
+          'Available Books',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF00253A),
+          ),
+        ),
+        centerTitle: true,
       ),
-      drawer: AppDrawer(onToggleTheme: widget.onToggleTheme),
-      body: Column(
-        children: [
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: getAvailableBooksStream(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+      drawer: AppDrawer(onToggleTheme: () {}),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      spreadRadius: 1,
+                      blurRadius: 5,
+                    )
+                  ],
+                ),
+                child: const TextField(
+                  decoration: InputDecoration(
+                    hintText: 'Search by title or author...',
+                    prefixIcon: Icon(Icons.search),
+                    border: InputBorder.none,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Available Books',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF00253A),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: booksStream,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
 
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return const Center(child: Text("No books available right now."));
+                    }
 
-                final books = snapshot.data?.docs ?? [];
+                    final books = snapshot.data!.docs;
 
-                if (books.isEmpty) {
-                  return const Center(child: Text('No available books at the moment.'));
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.only(bottom: 80),
-                  itemCount: books.length,
-                  itemBuilder: (context, index) {
-                    final book = books[index];
-                    final title = book['title'] ?? 'Untitled';
-                    final author = book['author'] ?? 'Unknown Author';
-                    final bookId = book['bookId'];
-                    final isAvailable = book['isAvailable'];
-
-                    return FutureBuilder<String?>(
-                      future: checkRequestStatus(bookId),
-                      builder: (context, requestSnapshot) {
-                        final requestStatus = requestSnapshot.data;
-                        final isRequestMade = requestStatus == 'pending' || requestStatus == 'approved';
+                    return GridView.builder(
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        mainAxisSpacing: 16,
+                        crossAxisSpacing: 16,
+                        childAspectRatio: 2 / 3,
+                      ),
+                      itemCount: books.length,
+                      itemBuilder: (context, index) {
+                        final book = books[index].data() as Map<String, dynamic>;
+                        final bookId = books[index].id;
+                        final title = book['title'] ?? 'Untitled';
+                        final author = book['author'] ?? 'Unknown';
+                        final isAvailable = book['isAvailable'] ?? false;
+                        final imageUrl = book['imageUrl'] ?? '';
 
                         return GestureDetector(
                           onTap: () {
@@ -145,50 +148,79 @@ class _BookListScreenState extends State<BookListScreen> {
                               ),
                             );
                           },
-                          child: Card(
-                            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            elevation: 3,
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Column(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.05),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: ClipRRect(
+                                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                                    child: imageUrl.isNotEmpty
+                                        ? Image.network(
+                                      imageUrl,
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) => const Icon(Icons.book, size: 40, color: Colors.grey),
+                                      loadingBuilder: (context, child, loadingProgress) {
+                                        return loadingProgress == null
+                                            ? child
+                                            : const Center(child: CircularProgressIndicator());
+                                      },
+                                    )
+                                        : Container(
+                                      color: Colors.grey[300],
+                                      child: const Center(child: Icon(Icons.book, size: 40, color: Colors.grey)),
+                                    ),
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         title,
-                                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                          color: Color(0xFF00253A),
+                                        ),
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        'by $author',
-                                        style: const TextStyle(fontSize: 14, color: Colors.grey),
+                                        author,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(fontSize: 12, color: Colors.black54),
                                       ),
                                     ],
                                   ),
-                                  isRequestMade
-                                      ? const Text(
-                                    'Request Made',
-                                    style: TextStyle(
-                                      color: Colors.grey,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  )
-                                      : const Icon(Icons.arrow_forward_ios, color: Color(0xFF91D7C3), size: 20),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ),
                         );
                       },
                     );
                   },
-                );
-              },
-            ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

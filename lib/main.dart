@@ -1,139 +1,159 @@
+// import 'package:flutter/material.dart';
+// import 'package:firebase_core/firebase_core.dart';
+// import 'package:firebase_auth/firebase_auth.dart';
+//
+// import 'screens/login_screen.dart';
+// import 'screens/user_book_list_screen.dart';
+// import 'screens/book_list_screen.dart';
+// import 'screens/user_home_screen.dart'; // 👈 import this screen
+//
+// void main() async {
+//   WidgetsFlutterBinding.ensureInitialized();
+//   await Firebase.initializeApp();
+//   runApp(const MyApp());
+// }
+//
+// class MyApp extends StatelessWidget {
+//   const MyApp({super.key});
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return MaterialApp(
+//       title: 'Library App',
+//       debugShowCheckedModeBanner: false,
+//       theme: ThemeData(
+//         scaffoldBackgroundColor: Colors.white,
+//         primaryColor: const Color(0xFF91D7C3),
+//         colorScheme: ColorScheme.fromSeed(
+//           seedColor: const Color(0xFF91D7C3),
+//           brightness: Brightness.light,
+//         ),
+//         appBarTheme: const AppBarTheme(
+//           backgroundColor: Color(0xFF91D7C3),
+//           foregroundColor: Colors.black,
+//           elevation: 0,
+//         ),
+//         drawerTheme: const DrawerThemeData(
+//           backgroundColor: Color(0xFF91D7C3),
+//         ),
+//         textTheme: const TextTheme(
+//           bodyMedium: TextStyle(color: Colors.black),
+//         ),
+//         fontFamily: 'Roboto',
+//         cardTheme: const CardThemeData(
+//           color: Colors.white,
+//           elevation: 4,
+//         ),
+//       ),
+//       routes: {
+//         '/login': (_) => const LoginScreen(),
+//         '/genreBooks': (context) {
+//           final genre = ModalRoute.of(context)!.settings.arguments as String;
+//           return UserBookListScreen(genre: genre);
+//         },
+//         '/bookList': (context) => const BookListScreen(),
+//         // Add other routes as needed
+//       },
+//       home: StreamBuilder<User?>(
+//         stream: FirebaseAuth.instance.authStateChanges(),
+//         builder: (context, snapshot) {
+//           if (snapshot.connectionState == ConnectionState.waiting) {
+//             return const Center(child: CircularProgressIndicator());
+//           }
+//           return snapshot.hasData
+//               ? const UserHomeScreen() // 👈 Show directly without bottom nav
+//               : const LoginScreen();
+//         },
+//       ),
+//     );
+//   }
+// }
+
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 import 'screens/login_screen.dart';
-import 'screens/alerts_screen.dart';
-import 'screens/borrowed_books_screen.dart';
+import 'screens/user_book_list_screen.dart';
 import 'screens/book_list_screen.dart';
-import 'screens/history_screen.dart';
+import 'screens/user_home_screen.dart';
+import 'screens/admin_available_books_screen.dart'; // Admin screen
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  runApp(const MainApp());
+  runApp(const MyApp());
 }
 
-class MainApp extends StatelessWidget {
-  const MainApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const MyApp();
-  }
-}
-
-class MyApp extends StatefulWidget {
+class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  @override
-  State<MyApp> createState() => _MyAppState();
-}
+  Widget _getHomeScreen(User? user) {
+    if (user == null) {
+      return const LoginScreen(); // No session
+    }
 
-class _MyAppState extends State<MyApp> {
-  final ValueNotifier<ThemeMode> _themeNotifier = ValueNotifier(ThemeMode.light);
+    if (user.email == 'kushal23241a05c7@grietcollege.com') {
+      return const AdminAvailableBooksScreen(); // Admin
+    }
 
-  void _toggleTheme() {
-    _themeNotifier.value =
-    _themeNotifier.value == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+    return const UserHomeScreen(); // Regular user
   }
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<ThemeMode>(
-      valueListenable: _themeNotifier,
-      builder: (context, themeMode, _) {
-        return MaterialApp(
-          title: 'Library App',
-          debugShowCheckedModeBanner: false,
-          themeMode: themeMode,
-
-          // --------------------- LIGHT THEME ---------------------
-          theme: ThemeData(
-            scaffoldBackgroundColor: Colors.white,
-            primaryColor: const Color(0xFF91D7C3),
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFF91D7C3),
-              brightness: Brightness.light,
-            ),
-            appBarTheme: const AppBarTheme(
-              backgroundColor: Color(0xFF91D7C3),
-              foregroundColor: Colors.black,
-              elevation: 0,
-            ),
-            drawerTheme: const DrawerThemeData(
-              backgroundColor: Color(0xFF91D7C3),
-            ),
-            textTheme: const TextTheme(
-              bodyMedium: TextStyle(color: Colors.black),
-            ),
-            fontFamily: 'Roboto',
-            cardTheme: const CardThemeData(
-              color: Colors.white,
-              elevation: 4,
-            ),
+    return MaterialApp(
+      title: 'Gen-Lib',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        scaffoldBackgroundColor: const Color(0xFFF3FAF8),
+        primaryColor: const Color(0xFF00253A),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF00253A),
+          brightness: Brightness.light,
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.transparent,
+          centerTitle: true,
+          elevation: 0,
+          titleTextStyle: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF00253A),
           ),
-
-          // --------------------- DARK THEME ---------------------
-          darkTheme: ThemeData(
-            scaffoldBackgroundColor: const Color(0xFF1C1C1E),
-            cardColor: const Color(0xFF2C2C2E),
-            primaryColor: const Color(0xFF91D7C3),
-            colorScheme: const ColorScheme.dark(
-              primary: Color(0xFF91D7C3),
-              surface: Color(0xFF2C2C2E),
-              onSurface: Colors.white,
-            ),
-            appBarTheme: const AppBarTheme(
-              backgroundColor: Color(0xFF2C2C2E),
-              foregroundColor: Colors.white,
-              elevation: 0,
-            ),
-            iconTheme: const IconThemeData(color: Colors.white),
-            drawerTheme: const DrawerThemeData(
-              backgroundColor: Color(0xFF2C2C2E),
-            ),
-            textTheme: const TextTheme(
-              bodyMedium: TextStyle(color: Colors.white),
-            ),
-            listTileTheme: const ListTileThemeData(
-              iconColor: Colors.white,
-              textColor: Colors.white,
-            ),
-            fontFamily: 'Roboto',
-            cardTheme: const CardThemeData(
-              color: Colors.white,
-              elevation: 4,
-            ),
-            inputDecorationTheme: const InputDecorationTheme(
-              filled: true,
-              fillColor: Color(0xFF2C2C2E),
-              border: OutlineInputBorder(),
-            ),
-          ),
-
-          // --------------------- ROUTES ---------------------
-          routes: {
-            '/login': (_) => LoginScreen(onToggleTheme: _toggleTheme),
-            '/booklist': (_) => BookListScreen(onToggleTheme: _toggleTheme),
-            '/alerts': (_) => AlertsScreen(onToggleTheme: _toggleTheme),
-            '/borrowedBooks': (_) => BorrowedBooksScreen(onToggleTheme: _toggleTheme),
-            '/history': (_) => HistoryScreen(onToggleTheme: _toggleTheme),
-          },
-
-          // --------------------- HOME ---------------------
-          home: StreamBuilder<User?>(
-            stream: FirebaseAuth.instance.authStateChanges(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              return snapshot.hasData
-                  ? BookListScreen(onToggleTheme: _toggleTheme)
-                  : LoginScreen(onToggleTheme: _toggleTheme);
-            },
-          ),
-        );
+          iconTheme: IconThemeData(color: Color(0xFF00253A)),
+        ),
+        textTheme: const TextTheme(
+          bodyMedium: TextStyle(color: Colors.black87),
+        ),
+        fontFamily: 'Roboto',
+        // Removed `margin` from CardTheme to fix error
+        cardTheme: const CardThemeData(
+          color: Colors.white,
+          elevation: 4,
+          shadowColor: Colors.black12,
+        ),
+      ),
+      routes: {
+        '/login': (_) => const LoginScreen(),
+        '/genreBooks': (context) {
+          final genre = ModalRoute.of(context)!.settings.arguments as String;
+          return UserBookListScreen(genre: genre);
+        },
+        '/bookList': (_) => const BookListScreen(),
       },
+      home: StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              backgroundColor: Color(0xFFF3FAF8),
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+          return _getHomeScreen(snapshot.data);
+        },
+      ),
     );
   }
 }

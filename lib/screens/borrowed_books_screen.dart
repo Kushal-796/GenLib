@@ -1,213 +1,10 @@
-// import 'package:flutter/material.dart';
-// import 'package:cloud_firestore/cloud_firestore.dart';
-// import 'package:firebase_auth/firebase_auth.dart';
-// import 'package:libraryqr/widgets/app_drawer.dart';
-//
-// class BorrowedBooksScreen extends StatefulWidget {
-//   final VoidCallback onToggleTheme;
-//   const BorrowedBooksScreen({super.key, required this.onToggleTheme});
-//
-//   @override
-//   State<BorrowedBooksScreen> createState() => _BorrowedBooksScreenState();
-// }
-//
-// class _BorrowedBooksScreenState extends State<BorrowedBooksScreen> {
-//   final user = FirebaseAuth.instance.currentUser;
-//
-//   Future<void> _sendReturnRequest(String lendingRequestId, String bookId) async {
-//     try {
-//       final userId = user?.uid;
-//       if (userId == null) throw Exception("User not logged in");
-//
-//       // Check for an associated penalty
-//       final penaltySnapshot = await FirebaseFirestore.instance
-//           .collection('penalties')
-//           .where('userId', isEqualTo: userId)
-//           .where('bookId', isEqualTo: bookId)
-//           .where('isPaid', isEqualTo: false)
-//           .limit(1)
-//           .get();
-//
-//       String? penaltyId;
-//       if (penaltySnapshot.docs.isNotEmpty) {
-//         penaltyId = penaltySnapshot.docs.first.id;
-//       }
-//
-//       // Update lending request to reflect return attempt
-//       await FirebaseFirestore.instance.collection('lending_requests').doc(lendingRequestId).update({
-//         'isReturnRequest': true,
-//         'returnRequestStatus': 'pending',
-//         'returnTimestamp': Timestamp.now(),
-//       });
-//
-//       // Add return request with optional penaltyId
-//       final returnRequestData = {
-//         'lendingRequestId': lendingRequestId,
-//         'bookId': bookId,
-//         'userId': userId,
-//         'status': 'pending',
-//         'createdAt': Timestamp.now(),
-//         if (penaltyId != null) 'penaltyId': penaltyId,
-//       };
-//
-//       await FirebaseFirestore.instance.collection('return_requests').add(returnRequestData);
-//
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         const SnackBar(content: Text('Return request sent successfully.')),
-//       );
-//
-//       setState(() {}); // Refresh UI
-//     } catch (e) {
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         SnackBar(content: Text('Error: $e')),
-//       );
-//     }
-//   }
-//
-//   int _getSortPriority(Map<String, dynamic> data) {
-//     final isReturnRequested = data['isReturnRequest'] == true;
-//     final isRejected = data['returnRequestStatus'] == 'rejected';
-//     if (!isReturnRequested) return 0;
-//     if (isReturnRequested && !isRejected) return 1;
-//     if (isRejected) return 2;
-//     return 3;
-//   }
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: const Text("My Borrowed Books"),
-//         actions: [
-//           StreamBuilder<QuerySnapshot>(
-//             stream: FirebaseFirestore.instance
-//                 .collection('alerts')
-//                 .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
-//                 .where('isRead', isEqualTo: false)
-//                 .snapshots(),
-//             builder: (context, snapshot) {
-//               final hasUnread = snapshot.hasData && snapshot.data!.docs.isNotEmpty;
-//               return Stack(
-//                 children: [
-//                   IconButton(
-//                     icon: const Icon(Icons.notifications),
-//                     onPressed: () {
-//                       Navigator.pushNamed(context, '/alerts');
-//                     },
-//                   ),
-//                   if (hasUnread)
-//                     Positioned(
-//                       right: 11,
-//                       top: 11,
-//                       child: Container(
-//                         width: 10,
-//                         height: 10,
-//                         decoration: const BoxDecoration(
-//                           color: Colors.red,
-//                           shape: BoxShape.circle,
-//                         ),
-//                       ),
-//                     ),
-//                 ],
-//               );
-//             },
-//           ),
-//         ],
-//       ),
-//
-//       drawer: AppDrawer(onToggleTheme: widget.onToggleTheme),
-//       body: StreamBuilder<QuerySnapshot>(
-//         stream: FirebaseFirestore.instance
-//             .collection('lending_requests')
-//             .where('userId', isEqualTo: user?.uid)
-//             .where('status', isEqualTo: 'approved')
-//             .snapshots(),
-//         builder: (context, snapshot) {
-//           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-//
-//           final rawRequests = snapshot.data!.docs;
-//           final filteredRequests = rawRequests.where((doc) {
-//             final data = doc.data() as Map<String, dynamic>;
-//             return data['isReturned'] != true;
-//           }).toList();
-//
-//           if (filteredRequests.isEmpty) {
-//             return const Center(child: Text('No borrowed books found.'));
-//           }
-//
-//           filteredRequests.sort((a, b) {
-//             final aData = a.data() as Map<String, dynamic>;
-//             final bData = b.data() as Map<String, dynamic>;
-//             return _getSortPriority(aData).compareTo(_getSortPriority(bData));
-//           });
-//
-//           return ListView.builder(
-//             itemCount: filteredRequests.length,
-//             itemBuilder: (context, index) {
-//               final lendingData = filteredRequests[index].data() as Map<String, dynamic>;
-//               final lendingRequestId = filteredRequests[index].id;
-//               final bookId = lendingData['bookId'];
-//               final isReturnRequested = lendingData['isReturnRequest'] == true;
-//               final returnStatus = lendingData['returnRequestStatus'];
-//               final canRequestReturn = !isReturnRequested || returnStatus == 'rejected';
-//
-//               return FutureBuilder<DocumentSnapshot>(
-//                 future: FirebaseFirestore.instance.collection('books').doc(bookId).get(),
-//                 builder: (context, bookSnapshot) {
-//                   if (!bookSnapshot.hasData || !bookSnapshot.data!.exists) {
-//                     return const SizedBox.shrink();
-//                   }
-//
-//                   final bookData = bookSnapshot.data!.data() as Map<String, dynamic>;
-//                   final bookTitle = bookData['title'] ?? 'Untitled';
-//                   final bookAuthor = bookData['author'] ?? 'Unknown';
-//
-//                   return Card(
-//                     margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-//                     elevation: 2,
-//                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-//                     child: ListTile(
-//                       leading: const Icon(Icons.book, color: Color(0xFF91D7C3)),
-//                       title: Text(bookTitle),
-//                       subtitle: Text('Author: $bookAuthor'),
-//                       trailing: ElevatedButton(
-//                         onPressed: canRequestReturn
-//                             ? () => _sendReturnRequest(lendingRequestId, bookId)
-//                             : null,
-//                         style: ElevatedButton.styleFrom(
-//                           backgroundColor: const Color(0xFF91D7C3),
-//                           disabledBackgroundColor: Colors.grey,
-//                         ),
-//                         child: Text(
-//                           !isReturnRequested
-//                               ? 'Return'
-//                               : (returnStatus == 'pending'
-//                               ? 'Request Sent'
-//                               : returnStatus == 'rejected'
-//                               ? 'Retry Return'
-//                               : 'Returned'),
-//                         ),
-//                       ),
-//                     ),
-//                   );
-//                 },
-//               );
-//             },
-//           );
-//         },
-//       ),
-//     );
-//   }
-// }
-// Borrowed Books screen
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:libraryqr/widgets/app_drawer.dart';
 
 class BorrowedBooksScreen extends StatefulWidget {
-  final VoidCallback onToggleTheme;
-  const BorrowedBooksScreen({super.key, required this.onToggleTheme});
+  const BorrowedBooksScreen({Key? key}) : super(key: key);
 
   @override
   State<BorrowedBooksScreen> createState() => _BorrowedBooksScreenState();
@@ -221,7 +18,6 @@ class _BorrowedBooksScreenState extends State<BorrowedBooksScreen> {
       final userId = user?.uid;
       if (userId == null) throw Exception("User not logged in");
 
-      // Check for any penalty associated
       final penaltySnapshot = await FirebaseFirestore.instance
           .collection('penalties')
           .where('userId', isEqualTo: userId)
@@ -235,7 +31,6 @@ class _BorrowedBooksScreenState extends State<BorrowedBooksScreen> {
         penaltyId = penaltySnapshot.docs.first.id;
       }
 
-      // Directly update lending_request to handle return request
       await FirebaseFirestore.instance.collection('lending_requests').doc(lendingRequestId).update({
         'isReturnRequest': true,
         'returnRequestStatus': 'pending',
@@ -267,13 +62,33 @@ class _BorrowedBooksScreenState extends State<BorrowedBooksScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF3FAF8),
+      drawer: AppDrawer(onToggleTheme: () {}),
       appBar: AppBar(
-        title: const Text("My Borrowed Books"),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.chevron_right, color: Color(0xFF00253A)),
+            onPressed: () {
+              Scaffold.of(context).openDrawer();
+            },
+          ),
+        ),
+        title: const Text(
+          "My Borrowed Books",
+          style: TextStyle(
+            color: Color(0xFF00253A),
+            fontSize: 24,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         actions: [
           StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('alerts')
-                .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
+                .where('userId', isEqualTo: user?.uid)
                 .where('isRead', isEqualTo: false)
                 .snapshots(),
             builder: (context, snapshot) {
@@ -281,22 +96,18 @@ class _BorrowedBooksScreenState extends State<BorrowedBooksScreen> {
               return Stack(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.notifications),
+                    icon: const Icon(Icons.notifications, color: Color(0xFF00253A)),
                     onPressed: () {
                       Navigator.pushNamed(context, '/alerts');
                     },
                   ),
                   if (hasUnread)
-                    Positioned(
-                      right: 11,
-                      top: 11,
-                      child: Container(
-                        width: 10,
-                        height: 10,
-                        decoration: const BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
+                    const Positioned(
+                      right: 10,
+                      top: 10,
+                      child: CircleAvatar(
+                        radius: 5,
+                        backgroundColor: Colors.red,
                       ),
                     ),
                 ],
@@ -305,7 +116,6 @@ class _BorrowedBooksScreenState extends State<BorrowedBooksScreen> {
           ),
         ],
       ),
-      drawer: AppDrawer(onToggleTheme: widget.onToggleTheme),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('lending_requests')
@@ -315,67 +125,111 @@ class _BorrowedBooksScreenState extends State<BorrowedBooksScreen> {
         builder: (context, snapshot) {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
-          final rawRequests = snapshot.data!.docs;
-          final filteredRequests = rawRequests.where((doc) {
+          final requests = snapshot.data!.docs.where((doc) {
             final data = doc.data() as Map<String, dynamic>;
             return data['isReturned'] != true;
           }).toList();
 
-          if (filteredRequests.isEmpty) {
-            return const Center(child: Text('No borrowed books found.'));
+          if (requests.isEmpty) {
+            return const Center(
+              child: Text(
+                '📚 No borrowed books found.',
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+            );
           }
 
-          filteredRequests.sort((a, b) {
+          requests.sort((a, b) {
             final aData = a.data() as Map<String, dynamic>;
             final bData = b.data() as Map<String, dynamic>;
             return _getSortPriority(aData).compareTo(_getSortPriority(bData));
           });
 
           return ListView.builder(
-            itemCount: filteredRequests.length,
+            padding: const EdgeInsets.all(20),
+            itemCount: requests.length,
             itemBuilder: (context, index) {
-              final lendingData = filteredRequests[index].data() as Map<String, dynamic>;
-              final lendingRequestId = filteredRequests[index].id;
-              final bookId = lendingData['bookId'];
-              final isReturnRequested = lendingData['isReturnRequest'] == true;
-              final returnStatus = lendingData['returnRequestStatus'];
+              final data = requests[index].data() as Map<String, dynamic>;
+              final lendingRequestId = requests[index].id;
+              final bookId = data['bookId'];
+              final isReturnRequested = data['isReturnRequest'] == true;
+              final returnStatus = data['returnRequestStatus'];
               final canRequestReturn = !isReturnRequested || returnStatus == 'rejected';
 
               return FutureBuilder<DocumentSnapshot>(
                 future: FirebaseFirestore.instance.collection('books').doc(bookId).get(),
-                builder: (context, bookSnapshot) {
-                  if (!bookSnapshot.hasData || !bookSnapshot.data!.exists) {
-                    return const SizedBox.shrink();
-                  }
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData || !snapshot.data!.exists) return const SizedBox.shrink();
 
-                  final bookData = bookSnapshot.data!.data() as Map<String, dynamic>;
-                  final bookTitle = bookData['title'] ?? 'Untitled';
-                  final bookAuthor = bookData['author'] ?? 'Unknown';
+                  final bookData = snapshot.data!.data() as Map<String, dynamic>;
+                  final title = bookData['title'] ?? 'Untitled';
+                  final author = bookData['author'] ?? 'Unknown';
+                  final imageUrl = bookData['imageUrl'] ?? '';
 
-                  return Card(
-                    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
                     child: ListTile(
-                      leading: const Icon(Icons.book, color: Color(0xFF91D7C3)),
-                      title: Text(bookTitle),
-                      subtitle: Text('Author: $bookAuthor'),
+                      contentPadding: const EdgeInsets.all(12),
+                      leading: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: imageUrl.isNotEmpty
+                            ? Image.network(
+                          imageUrl,
+                          width: 60,
+                          height: 80,
+                          fit: BoxFit.cover,
+                        )
+                            : Container(
+                          width: 60,
+                          height: 80,
+                          color: Colors.grey[300],
+                          child: const Icon(Icons.menu_book, color: Colors.grey),
+                        ),
+                      ),
+                      title: Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF00253A),
+                        ),
+                      ),
+                      subtitle: Text(
+                        'by $author',
+                        style: const TextStyle(fontSize: 13, color: Colors.grey),
+                      ),
                       trailing: ElevatedButton(
                         onPressed: canRequestReturn
                             ? () => _sendReturnRequest(lendingRequestId, bookId)
                             : null,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF91D7C3),
-                          disabledBackgroundColor: Colors.grey,
+                          backgroundColor: canRequestReturn ? const Color(0xFF00253A) : Colors.grey,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
                         child: Text(
                           !isReturnRequested
                               ? 'Return'
-                              : (returnStatus == 'pending'
+                              : returnStatus == 'pending'
                               ? 'Request Sent'
                               : returnStatus == 'rejected'
                               ? 'Retry Return'
-                              : 'Returned'),
+                              : 'Returned',
+                          style: const TextStyle(fontSize: 13),
                         ),
                       ),
                     ),

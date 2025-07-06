@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:libraryqr/screens/book_list_screen.dart';
 import 'package:libraryqr/screens/login_screen.dart';
 import 'package:libraryqr/screens/alerts_screen.dart';
 import 'package:libraryqr/widgets/app_drawer.dart';
@@ -64,130 +63,145 @@ class _HistoryScreenState extends State<HistoryScreen> {
     await _auth.signOut();
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => LoginScreen(onToggleTheme: () {})),
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => BookListScreen(onToggleTheme: widget.onToggleTheme)),
-        );
-        return false;
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          backgroundColor: const Color(0xFF91D7C3),
-          title: const Text('History', style: TextStyle(color: Colors.black)),
-          iconTheme: const IconThemeData(color: Colors.black),
-          actions: [
-            StreamBuilder<bool>(
-              stream: hasUnreadAlerts(),
-              builder: (context, snapshot) {
-                final hasUnread = snapshot.data ?? false;
+    final userId = FirebaseAuth.instance.currentUser?.uid;
 
-                return Stack(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.notifications),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => AlertsScreen(onToggleTheme: widget.onToggleTheme),
-                          ),
-                        );
-                      },
-                    ),
-                    if (hasUnread)
-                      Positioned(
-                        right: 11,
-                        top: 11,
-                        child: Container(
-                          width: 10,
-                          height: 10,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.red,
-                          ),
-                        ),
-                      ),
-                  ],
-                );
-              },
-            ),
-          ],
+    return Scaffold(
+      backgroundColor: const Color(0xFFF3FAF8),
+      drawer: AppDrawer(onToggleTheme: widget.onToggleTheme),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.chevron_right, color: Color(0xFF00253A)),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
         ),
-        drawer: AppDrawer(onToggleTheme: widget.onToggleTheme),
-        body: FutureBuilder<List<Map<String, dynamic>>>(
-          future: _fetchReturnedBooks(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
+        title: const Text(
+          'History',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 24,
+            color: Color(0xFF00253A),
+          ),
+        ),
+        actions: [
+          StreamBuilder<bool>(
+            stream: hasUnreadAlerts(),
+            builder: (context, snapshot) {
+              final hasUnread = snapshot.data ?? false;
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications, color: Color(0xFF00253A)),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const AlertsScreen()),
+                      );
+                    },
+                  ),
+                  if (hasUnread)
+                    const Positioned(
+                      right: 11,
+                      top: 11,
+                      child: CircleAvatar(
+                        radius: 5,
+                        backgroundColor: Colors.red,
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        future: _fetchReturnedBooks(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-            if (snapshot.hasError) {
-              return Center(child: Text('Error: ${snapshot.error}'));
-            }
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
 
-            final history = snapshot.data ?? [];
+          final history = snapshot.data ?? [];
 
-            if (history.isEmpty) {
-              return const Center(child: Text('No returned books history found.'));
-            }
+          if (history.isEmpty) {
+            return const Center(
+              child: Text(
+                '📚 No returned books yet!',
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+            );
+          }
 
-            return ListView.builder(
-              padding: const EdgeInsets.only(bottom: 80),
-              itemCount: history.length,
-              itemBuilder: (context, index) {
-                final item = history[index];
-                final formattedDate = item['timestamp'] != null
-                    ? (item['timestamp'] as Timestamp).toDate()
-                    : DateTime.now();
+          return ListView.builder(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
+            itemCount: history.length,
+            itemBuilder: (context, index) {
+              final item = history[index];
+              final formattedDate = item['timestamp'] != null
+                  ? (item['timestamp'] as Timestamp).toDate()
+                  : DateTime.now();
 
-                return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  elevation: 3,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item['title'] ?? 'Unknown Title',
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'by ${item['author'] ?? 'Unknown Author'}',
-                              style: const TextStyle(fontSize: 14, color: Colors.grey),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Returned on: ${formattedDate.day}/${formattedDate.month}/${formattedDate.year}',
-                              style: const TextStyle(fontSize: 12, color: Colors.grey),
-                            ),
-                          ],
-                        ),
-                        const Chip(
-                          label: Text('RETURNED', style: TextStyle(color: Colors.white)),
-                          backgroundColor: Colors.green,
-                        ),
-                      ],
+              return Container(
+                margin: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    )
+                  ],
+                ),
+                child: ListTile(
+                  leading: const Icon(Icons.history, color: Colors.indigo),
+                  title: Text(
+                    item['title'] ?? 'Unknown Title',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                      color: Color(0xFF00253A),
                     ),
                   ),
-                );
-              },
-            );
-          },
-        ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'by ${item['author'] ?? 'Unknown Author'}',
+                        style: const TextStyle(fontSize: 13, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Returned on: ${formattedDate.day}/${formattedDate.month}/${formattedDate.year}',
+                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                  trailing: const Chip(
+                    label: Text('RETURNED', style: TextStyle(color: Colors.white)),
+                    backgroundColor: Colors.green,
+                  ),
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }
 }
+

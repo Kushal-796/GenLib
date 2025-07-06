@@ -4,6 +4,7 @@ import 'package:libraryqr/screens/admin_users_borrowed_books_screen.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import '../widgets/admin_app_drawer.dart';
 
 class AdminUsersListScreen extends StatefulWidget {
   const AdminUsersListScreen({super.key});
@@ -119,77 +120,6 @@ class _AdminUsersListScreenState extends State<AdminUsersListScreen> {
     );
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                labelText: "Search by name or email",
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value.toLowerCase().trim();
-                });
-              },
-            ),
-          ),
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('lending_requests')
-                  .where('status', isEqualTo: 'approved')
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData || snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                final requests = snapshot.data!.docs;
-                final Set<String> uniqueUserIds = requests.map((doc) => doc['userId'] as String).toSet();
-
-                return FutureBuilder<List<Widget>>(
-                  future: _buildUserCards(uniqueUserIds),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    final cards = snapshot.data!;
-                    return cards.isEmpty
-                        ? const Center(child: Text("No matching users found."))
-                        : ListView(children: cards);
-                  },
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: const Color(0xFF91D7C3),
-        icon: const Icon(Icons.download),
-        label: const Text("Download PDF"),
-        onPressed: () async {
-          await _generateExcelStylePdf();
-        },
-      ),
-    );
-  }
-
   Future<List<Widget>> _buildUserCards(Set<String> userIds) async {
     List<Widget> cards = [];
 
@@ -206,10 +136,17 @@ class _AdminUsersListScreenState extends State<AdminUsersListScreen> {
 
       if (matchesQuery) {
         cards.add(
-          Card(
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
+            ),
             child: ListTile(
-              leading: const Icon(Icons.person),
-              title: Text(name),
+              contentPadding: const EdgeInsets.all(16),
+              leading: const Icon(Icons.person, color: Colors.blueGrey),
+              title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
               subtitle: Text(email),
               onTap: () {
                 Navigator.push(
@@ -228,5 +165,115 @@ class _AdminUsersListScreenState extends State<AdminUsersListScreen> {
       }
     }
     return cards;
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF3FAF8),
+      drawer: AdminAppDrawer(
+        // selectedIndex: 6, // update according to drawer index logic
+        // onItemSelected: (index) {},
+      ),
+      body: SafeArea(
+        child: Builder(
+          builder: (context) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Dad-style AppBar
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => Scaffold.of(context).openDrawer(),
+                      child: const Icon(Icons.chevron_right, size: 32, color: Color(0xFF00253A)),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        "Users List",
+                        style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF00253A),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Search Bar
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    labelText: "Search by name or email",
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value.toLowerCase().trim();
+                    });
+                  },
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // User List
+              Expanded(
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('lending_requests')
+                      .where('status', isEqualTo: 'approved')
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData || snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    final requests = snapshot.data!.docs;
+                    final Set<String> uniqueUserIds = requests.map((doc) => doc['userId'] as String).toSet();
+
+                    return FutureBuilder<List<Widget>>(
+                      future: _buildUserCards(uniqueUserIds),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) {
+                          return const Center(child: CircularProgressIndicator());
+                        }
+                        final cards = snapshot.data!;
+                        return cards.isEmpty
+                            ? const Center(child: Text("No matching users found."))
+                            : ListView(children: cards);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: const Color(0xFF91D7C3),
+        icon: const Icon(Icons.download),
+        label: const Text("Download PDF"),
+        onPressed: () async {
+          await _generateExcelStylePdf();
+        },
+      ),
+    );
   }
 }

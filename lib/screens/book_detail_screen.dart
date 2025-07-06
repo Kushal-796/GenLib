@@ -23,6 +23,9 @@ class BookDetailScreen extends StatefulWidget {
 class _BookDetailScreenState extends State<BookDetailScreen> {
   bool _isLoading = false;
   bool _requestMade = false;
+  String? _imageUrl;
+  String _genre = 'Unknown';
+  int _copies = 0;
 
   final _firestore = FirebaseFirestore.instance;
   final _auth = FirebaseAuth.instance;
@@ -31,6 +34,24 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   void initState() {
     super.initState();
     _checkIfRequestAlreadyMade();
+    _fetchBookDetails();
+  }
+
+  Future<void> _fetchBookDetails() async {
+    try {
+      final doc = await _firestore.collection('books').doc(widget.bookId).get();
+      if (doc.exists) {
+        final data = doc.data()!;
+        if (data['imageUrl'] != null && data['imageUrl'].toString().isNotEmpty) {
+          _imageUrl = data['imageUrl'];
+        }
+        _genre = data['genre'] ?? 'Unknown';
+        _copies = data['count'] ?? 0;
+        setState(() {});
+      }
+    } catch (e) {
+      debugPrint("Failed to fetch book details: $e");
+    }
   }
 
   Future<void> _checkIfRequestAlreadyMade() async {
@@ -55,9 +76,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     final user = _auth.currentUser;
     if (user == null) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
       await _firestore.collection('lending_requests').add({
@@ -73,98 +92,118 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Request sent successfully!')),
+        const SnackBar(content: Text('📩 Request sent successfully!')),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+        SnackBar(content: Text('⚠️ Error: $e')),
       );
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7FDFD),
+      backgroundColor: const Color(0xFFF3FAF8),
       appBar: AppBar(
-        title: const Text("Book Details"),
-        backgroundColor: const Color(0xFF91D7C3),
-        elevation: 0,
+        backgroundColor: const Color(0xFF00253A),
+        elevation: 1,
+        title: const Text("Book Details", style: TextStyle(color: Colors.white)),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
-              child: CircleAvatar(
-                radius: 40,
-                backgroundColor: const Color(0xFF91D7C3),
-                child: const Icon(Icons.menu_book, size: 40, color: Colors.white),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
-              ),
-              elevation: 5,
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.title,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF333333),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      "Author: ${widget.author}",
-                      style: const TextStyle(fontSize: 18, color: Color(0xFF555555)),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      "Book ID: ${widget.bookId}",
-                      style: const TextStyle(fontSize: 16, color: Color(0xFF777777)),
-                    ),
+              child: Container(
+                width: MediaQuery.of(context).size.width * 0.6,
+                height: MediaQuery.of(context).size.height * 0.4,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 6,
+                      offset: Offset(0, 3),
+                    )
                   ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: _imageUrl != null
+                      ? Image.network(
+                    _imageUrl!,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (context, child, progress) {
+                      return progress == null
+                          ? child
+                          : const Center(child: CircularProgressIndicator());
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Icon(Icons.broken_image, size: 40, color: Colors.grey);
+                    },
+                  )
+                      : Container(
+                    color: Colors.grey[300],
+                    child: const Icon(Icons.menu_book, size: 40, color: Colors.grey),
+                  ),
                 ),
               ),
             ),
-            const Spacer(),
+            const SizedBox(height: 28),
+            Text(
+              widget.title,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF00253A),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text("by ${widget.author}", style: const TextStyle(fontSize: 18, fontStyle: FontStyle.italic)),
+            const SizedBox(height: 20),
+            Text("Genre: $_genre", style: const TextStyle(fontSize: 16)),
+            const SizedBox(height: 8),
+            Text("Available Copies: $_copies", style: const TextStyle(fontSize: 16)),
+            const SizedBox(height: 8),
+            Text("Book ID: ${widget.bookId}", style: const TextStyle(fontSize: 14, color: Colors.black54)),
+            const SizedBox(height: 30),
             if (_isLoading)
               const Center(child: CircularProgressIndicator())
             else
               SizedBox(
                 width: double.infinity,
-                height: 50,
+                height: 52,
                 child: ElevatedButton.icon(
-                  icon: Icon(_requestMade || !widget.isAvailable
-                      ? Icons.check_circle
-                      : Icons.send),
+                  icon: Icon(
+                    _requestMade || !widget.isAvailable
+                        ? Icons.check_circle
+                        : Icons.send,
+                    color: Colors.white,
+                  ),
                   onPressed: (_requestMade || !widget.isAvailable)
                       ? null
                       : _sendBorrowRequest,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _requestMade || !widget.isAvailable
-                        ? Colors.grey.shade400
-                        : const Color(0xFF91D7C3),
-                    foregroundColor: Colors.black,
+                        ? Colors.grey
+                        : const Color(0xFF00253A),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                   ),
                   label: Text(
                     _requestMade || !widget.isAvailable ? "Request Made" : "Borrow",
-                    style: const TextStyle(fontSize: 16),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),
