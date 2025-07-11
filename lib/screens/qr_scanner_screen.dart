@@ -26,6 +26,8 @@ class _QRScannerScreenState extends State<QRScannerScreen>
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
+
+    _controller.start(); // Ensure scanner starts on load
   }
 
   @override
@@ -39,7 +41,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && !_isProcessing) {
-      _controller.start(); // Resume scanning when returning from BookDetailScreen
+      _controller.start(); // Resume scanning when returning from minimized
     }
   }
 
@@ -47,7 +49,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
     if (_isProcessing) return;
 
     setState(() => _isProcessing = true);
-    _controller.stop(); // Stop scanning after first detection
+    _controller.stop(); // Stop scanning after detection
 
     try {
       final snapshot = await FirebaseFirestore.instance
@@ -65,7 +67,8 @@ class _QRScannerScreenState extends State<QRScannerScreen>
         final author = bookData['author'] ?? 'Unknown Author';
         final isAvailable = bookData['isAvailable'];
 
-        Navigator.push(
+        // 👇 Wait for Book Detail to complete
+        await Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => BookDetailScreen(
@@ -76,6 +79,9 @@ class _QRScannerScreenState extends State<QRScannerScreen>
             ),
           ),
         );
+
+        // 👇 Restart scanner when back
+        if (mounted) _controller.start();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -101,13 +107,15 @@ class _QRScannerScreenState extends State<QRScannerScreen>
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const UserHomeScreen()),
-        );
-        return false;
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (!didPop) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const UserHomeScreen()),
+          );
+        }
       },
       child: Scaffold(
         backgroundColor: const Color(0xFFF3FAF8),

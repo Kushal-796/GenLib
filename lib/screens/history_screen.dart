@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:libraryqr/screens/login_screen.dart';
 import 'package:libraryqr/screens/alerts_screen.dart';
+import 'package:libraryqr/screens/user_home_screen.dart';
 import 'package:libraryqr/widgets/app_drawer.dart';
 
 class HistoryScreen extends StatefulWidget {
@@ -71,137 +72,147 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget build(BuildContext context) {
     final userId = FirebaseAuth.instance.currentUser?.uid;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF3FAF8),
-      drawer: AppDrawer(onToggleTheme: widget.onToggleTheme),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.chevron_right, color: Color(0xFF00253A)),
-            onPressed: () => Scaffold.of(context).openDrawer(),
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (!didPop) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const UserHomeScreen()),
+          );
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF3FAF8),
+        drawer: AppDrawer(onToggleTheme: widget.onToggleTheme),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          centerTitle: true,
+          leading: Builder(
+            builder: (context) => IconButton(
+              icon: const Icon(Icons.chevron_right, color: Color(0xFF00253A)),
+              onPressed: () => Scaffold.of(context).openDrawer(),
+            ),
           ),
-        ),
-        title: const Text(
-          'History',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 24,
-            color: Color(0xFF00253A),
+          title: const Text(
+            'History',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 24,
+              color: Color(0xFF00253A),
+            ),
           ),
-        ),
-        actions: [
-          StreamBuilder<bool>(
-            stream: hasUnreadAlerts(),
-            builder: (context, snapshot) {
-              final hasUnread = snapshot.data ?? false;
-              return Stack(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.notifications, color: Color(0xFF00253A)),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const AlertsScreen()),
-                      );
-                    },
-                  ),
-                  if (hasUnread)
-                    const Positioned(
-                      right: 11,
-                      top: 11,
-                      child: CircleAvatar(
-                        radius: 5,
-                        backgroundColor: Colors.red,
-                      ),
+          actions: [
+            StreamBuilder<bool>(
+              stream: hasUnreadAlerts(),
+              builder: (context, snapshot) {
+                final hasUnread = snapshot.data ?? false;
+                return Stack(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.notifications, color: Color(0xFF00253A)),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const AlertsScreen()),
+                        );
+                      },
                     ),
-                ],
-              );
-            },
-          ),
-        ],
-      ),
-      body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: _fetchReturnedBooks(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-
-          final history = snapshot.data ?? [];
-
-          if (history.isEmpty) {
-            return const Center(
-              child: Text(
-                '📚 No returned books yet!',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-            );
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
-            itemCount: history.length,
-            itemBuilder: (context, index) {
-              final item = history[index];
-              final formattedDate = item['timestamp'] != null
-                  ? (item['timestamp'] as Timestamp).toDate()
-                  : DateTime.now();
-
-              return Container(
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 4,
-                      offset: Offset(0, 2),
-                    )
+                    if (hasUnread)
+                      const Positioned(
+                        right: 11,
+                        top: 11,
+                        child: CircleAvatar(
+                          radius: 5,
+                          backgroundColor: Colors.red,
+                        ),
+                      ),
                   ],
+                );
+              },
+            ),
+          ],
+        ),
+        body: FutureBuilder<List<Map<String, dynamic>>>(
+          future: _fetchReturnedBooks(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            }
+
+            final history = snapshot.data ?? [];
+
+            if (history.isEmpty) {
+              return const Center(
+                child: Text(
+                  '📚 No returned books yet!',
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
                 ),
-                child: ListTile(
-                  leading: const Icon(Icons.history, color: Colors.indigo),
-                  title: Text(
-                    item['title'] ?? 'Unknown Title',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                      color: Color(0xFF00253A),
-                    ),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'by ${item['author'] ?? 'Unknown Author'}',
-                        style: const TextStyle(fontSize: 13, color: Colors.grey),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Returned on: ${formattedDate.day}/${formattedDate.month}/${formattedDate.year}',
-                        style: const TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
+              );
+            }
+
+            return ListView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
+              itemCount: history.length,
+              itemBuilder: (context, index) {
+                final item = history[index];
+                final formattedDate = item['timestamp'] != null
+                    ? (item['timestamp'] as Timestamp).toDate()
+                    : DateTime.now();
+
+                return Container(
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      )
                     ],
                   ),
-                  trailing: const Chip(
-                    label: Text('RETURNED', style: TextStyle(color: Colors.white)),
-                    backgroundColor: Colors.green,
+                  child: ListTile(
+                    leading: const Icon(Icons.history, color: Colors.indigo),
+                    title: Text(
+                      item['title'] ?? 'Unknown Title',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                        color: Color(0xFF00253A),
+                      ),
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'by ${item['author'] ?? 'Unknown Author'}',
+                          style: const TextStyle(fontSize: 13, color: Colors.grey),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Returned on: ${formattedDate.day}/${formattedDate.month}/${formattedDate.year}',
+                          style: const TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                    trailing: const Chip(
+                      label: Text('RETURNED', style: TextStyle(color: Colors.white)),
+                      backgroundColor: Colors.green,
+                    ),
                   ),
-                ),
-              );
-            },
-          );
-        },
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }
 }
-

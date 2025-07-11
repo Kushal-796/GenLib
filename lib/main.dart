@@ -67,6 +67,7 @@ class MyApp extends StatelessWidget {
       ),
       routes: {
         '/login': (_) => const LoginScreen(),
+        '/home': (_) => const UserHomeScreen(),
         '/genreBooks': (context) {
           final genre = ModalRoute.of(context)!.settings.arguments as String;
           return UserBookListScreen(genre: genre);
@@ -91,3 +92,4 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+

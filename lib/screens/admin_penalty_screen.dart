@@ -28,10 +28,7 @@ class AdminPenaltyScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF3FAF8),
-      drawer: AdminAppDrawer(
-        // selectedIndex: 5,
-        // onItemSelected: (int index) {},
-      ),
+      drawer: const AdminAppDrawer(),
       body: SafeArea(
         child: Builder(
           builder: (context) => Padding(
@@ -154,58 +151,66 @@ class AdminPenaltyScreen extends StatelessWidget {
                                               style: const TextStyle(
                                                   fontWeight: FontWeight.bold, fontSize: 14)),
                                           const SizedBox(height: 8),
-                                          isPaid
-                                              ? const Chip(
-                                            label: Text("Paid",
-                                                style: TextStyle(
-                                                    color: Colors.green,
-                                                    fontWeight: FontWeight.bold)),
-                                            backgroundColor: Color(0xFFDFFFE0),
-                                          )
-                                              : ElevatedButton(
-                                            onPressed: () async {
-                                              final confirm = await showDialog<bool>(
-                                                context: context,
-                                                builder: (context) => AlertDialog(
-                                                  title: const Text('Confirm Payment'),
-                                                  content: const Text(
-                                                      'Are you sure you want to mark this penalty as paid?'),
-                                                  actions: [
-                                                    TextButton(
-                                                      onPressed: () =>
-                                                          Navigator.pop(context, false),
-                                                      child: const Text('Cancel'),
-                                                    ),
-                                                    ElevatedButton(
-                                                      onPressed: () =>
-                                                          Navigator.pop(context, true),
-                                                      style: ElevatedButton.styleFrom(
-                                                          backgroundColor: Colors.green),
-                                                      child: const Text('Confirm'),
-                                                    ),
-                                                  ],
-                                                ),
-                                              );
+                                          if (isPaid)
+                                            const Chip(
+                                              label: Text("Paid",
+                                                  style: TextStyle(
+                                                      color: Colors.green,
+                                                      fontWeight: FontWeight.bold)),
+                                              backgroundColor: Color(0xFFDFFFE0),
+                                            )
+                                          else if (penaltyAmount == 0)
+                                            const Chip(
+                                              label: Text("No Fine",
+                                                  style: TextStyle(
+                                                      color: Colors.grey,
+                                                      fontWeight: FontWeight.bold)),
+                                              backgroundColor: Color(0xFFE0E0E0),
+                                            )
+                                          else
+                                            ElevatedButton(
+                                              onPressed: () async {
+                                                final confirm = await showDialog<bool>(
+                                                  context: context,
+                                                  builder: (context) => AlertDialog(
+                                                    title: const Text('Confirm Payment'),
+                                                    content: const Text(
+                                                        'Are you sure you want to mark this penalty as paid?'),
+                                                    actions: [
+                                                      TextButton(
+                                                        onPressed: () =>
+                                                            Navigator.pop(context, false),
+                                                        child: const Text('Cancel'),
+                                                      ),
+                                                      ElevatedButton(
+                                                        onPressed: () =>
+                                                            Navigator.pop(context, true),
+                                                        style: ElevatedButton.styleFrom(
+                                                            backgroundColor: Colors.green),
+                                                        child: const Text('Confirm'),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                );
 
-                                              if (confirm == true) {
-                                                await markAsPaid(doc.id);
-                                                if (context.mounted) {
-                                                  ScaffoldMessenger.of(context).showSnackBar(
-                                                    const SnackBar(
-                                                        content: Text(
-                                                            'Penalty marked as paid!')),
-                                                  );
+                                                if (confirm == true) {
+                                                  await markAsPaid(doc.id);
+                                                  if (context.mounted) {
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      const SnackBar(
+                                                          content: Text('Penalty marked as paid!')),
+                                                    );
+                                                  }
                                                 }
-                                              }
-                                            },
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.green,
-                                              padding: const EdgeInsets.symmetric(
-                                                  horizontal: 14, vertical: 6),
-                                              textStyle: const TextStyle(fontSize: 13),
+                                              },
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.green,
+                                                padding: const EdgeInsets.symmetric(
+                                                    horizontal: 14, vertical: 6),
+                                                textStyle: const TextStyle(fontSize: 13),
+                                              ),
+                                              child: const Text("Mark Paid"),
                                             ),
-                                            child: const Text("Mark Paid"),
-                                          ),
                                         ],
                                       ),
                                     ],
