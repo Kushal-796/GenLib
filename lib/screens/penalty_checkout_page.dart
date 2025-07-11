@@ -148,13 +148,6 @@ class _PenaltyCheckoutPageState extends State<PenaltyCheckoutPage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Center(
-              //   child: CircleAvatar(
-              //     backgroundColor: Colors.indigo,
-              //     radius: 35,
-              //     child: const Icon(Icons.book, color: Colors.white, size: 30),
-              //   ),
-              // ),
               Center(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),

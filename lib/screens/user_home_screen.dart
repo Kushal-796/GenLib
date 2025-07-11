@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../widgets/app_drawer.dart';
-import 'ai_chat_screen.dart';
 import 'book_detail_screen.dart';
 
 class UserHomeScreen extends StatefulWidget {
@@ -114,7 +113,6 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Profile row
               Row(
                 children: [
                   const SizedBox(width: 12),
@@ -147,20 +145,8 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           ),
         ),
       ),
-      // floatingActionButton: FloatingActionButton.extended(
-      //   onPressed: () {
-      //     Navigator.push(
-      //       context,
-      //       MaterialPageRoute(builder: (_) => const JotformChatScreen()),
-      //     );
-      //   },
-      //   icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
-      //   label: const Text("Ask AI"),
-      //   backgroundColor: const Color(0xFF00253A),
-      // ),
     );
   }
-
 
   Widget _buildPopularBooks() {
     return Column(
@@ -280,7 +266,6 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
       ],
     );
   }
-
 
   Widget _buildGenreCategories() {
     return Column(

@@ -35,7 +35,7 @@ dependencies:
   firebase_core: ^2.32.0
   slide_to_act: ^2.0.0
   image_picker: ^1.0.5
-  webview_flutter: ^4.0.7
+#  webview_flutter: ^4.0.7
   firebase_storage: ^11.6.6
   firebase_auth: ^4.20.0
   cloud_firestore: ^4.9.2
@@ -86,7 +86,6 @@ flutter:
       - assets/icon/
       - assets/animations/happy_baby_success.json
       - assets/sounds/success.mp3
-      - assets/ai_chat.html
 #      - assets/animations/loading.json
 
 

@@ -49,25 +49,6 @@ class _BookListScreenState extends State<BookListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF3FAF8),
-      // appBar: AppBar(
-      //   backgroundColor: const Color(0xFFF3FAF8),
-      //   elevation: 0,
-      //   leading: Builder(
-      //     builder: (context) => IconButton(
-      //       icon: const Icon(Icons.chevron_right, color: Color(0xFF00253A), size: 32),
-      //       onPressed: () => Scaffold.of(context).openDrawer(),
-      //     ),
-      //   ),
-      //   title: const Text(
-      //     'Available Books',
-      //     style: TextStyle(
-      //       fontSize: 20,
-      //       fontWeight: FontWeight.bold,
-      //       color: Color(0xFF00253A),
-      //     ),
-      //   ),
-      //   centerTitle: true,
-      // ),
       appBar: AppBar(
         backgroundColor: const Color(0xFFF3FAF8),
         elevation: 0,
