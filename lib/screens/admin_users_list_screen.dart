@@ -177,10 +177,7 @@ class _AdminUsersListScreenState extends State<AdminUsersListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF3FAF8),
-      drawer: AdminAppDrawer(
-        // selectedIndex: 6, // update according to drawer index logic
-        // onItemSelected: (index) {},
-      ),
+      drawer: AdminAppDrawer(),
       body: SafeArea(
         child: Builder(
           builder: (context) => Column(
@@ -267,13 +264,25 @@ class _AdminUsersListScreenState extends State<AdminUsersListScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: const Color(0xFF91D7C3),
-        icon: const Icon(Icons.download),
-        label: const Text("Download PDF"),
+        backgroundColor: const Color(0xFF00253A),
+        icon: const Icon(Icons.download, color: Colors.white),
+        label: const Text(
+          "Download PDF",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+          ),
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        elevation: 2,
         onPressed: () async {
           await _generateExcelStylePdf();
         },
       ),
+
     );
   }
 }

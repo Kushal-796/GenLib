@@ -148,13 +148,49 @@ class _PenaltyCheckoutPageState extends State<PenaltyCheckoutPage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Center(
+              //   child: CircleAvatar(
+              //     backgroundColor: Colors.indigo,
+              //     radius: 35,
+              //     child: const Icon(Icons.book, color: Colors.white, size: 30),
+              //   ),
+              // ),
               Center(
-                child: CircleAvatar(
-                  backgroundColor: Colors.indigo,
-                  radius: 35,
-                  child: const Icon(Icons.book, color: Colors.white, size: 30),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: bookDetails!['imageUrl'] != null && bookDetails!['imageUrl'].toString().isNotEmpty
+                      ? Image.network(
+                    bookDetails!['imageUrl'],
+                    width: 180,
+                    height: 240,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      width: 180,
+                      height: 240,
+                      color: Colors.grey[300],
+                      child: const Icon(Icons.broken_image, color: Colors.grey, size: 40),
+                    ),
+                    loadingBuilder: (context, child, loadingProgress) {
+                      return loadingProgress == null
+                          ? child
+                          : Container(
+                        width: 180,
+                        height: 240,
+                        alignment: Alignment.center,
+                        child: const CircularProgressIndicator(),
+                      );
+                    },
+                  )
+                      : Container(
+                    width: 180,
+                    height: 240,
+                    color: Colors.grey[300],
+                    child: const Icon(Icons.book, size: 40, color: Colors.grey),
+                  ),
                 ),
               ),
+
+
               const SizedBox(height: 24),
               Text(
                 '📕 Title: ${bookDetails!['title']}',

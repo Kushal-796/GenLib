@@ -26,6 +26,7 @@ exports.dailyPenaltyUpdater = onSchedule("every 24 hours", async (event) => {
       penaltyAmount = (daysElapsed - 5) * 2;
     }
 
+
     batch.update(doc.ref, { penaltyAmount });
   });
 

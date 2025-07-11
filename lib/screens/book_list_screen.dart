@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:libraryqr/screens/book_detail_screen.dart';
 import 'package:libraryqr/widgets/app_drawer.dart';
 
+import '../widgets/notification_bell.dart';
+
 class BookListScreen extends StatefulWidget {
   const BookListScreen({super.key});
 
@@ -47,6 +49,25 @@ class _BookListScreenState extends State<BookListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF3FAF8),
+      // appBar: AppBar(
+      //   backgroundColor: const Color(0xFFF3FAF8),
+      //   elevation: 0,
+      //   leading: Builder(
+      //     builder: (context) => IconButton(
+      //       icon: const Icon(Icons.chevron_right, color: Color(0xFF00253A), size: 32),
+      //       onPressed: () => Scaffold.of(context).openDrawer(),
+      //     ),
+      //   ),
+      //   title: const Text(
+      //     'Available Books',
+      //     style: TextStyle(
+      //       fontSize: 20,
+      //       fontWeight: FontWeight.bold,
+      //       color: Color(0xFF00253A),
+      //     ),
+      //   ),
+      //   centerTitle: true,
+      // ),
       appBar: AppBar(
         backgroundColor: const Color(0xFFF3FAF8),
         elevation: 0,
@@ -65,7 +86,15 @@ class _BookListScreenState extends State<BookListScreen> {
           ),
         ),
         centerTitle: true,
+        actions: [
+          NotificationBell(
+            onTap: () {
+              Navigator.pushNamed(context, '/alerts');
+            },
+          ),
+        ],
       ),
+
       drawer: AppDrawer(onToggleTheme: () {}),
       body: SafeArea(
         child: Padding(

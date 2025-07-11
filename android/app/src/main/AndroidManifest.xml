@@ -99,8 +99,10 @@
     <uses-permission android:name="android.permission.CAMERA"/>
 
 
+
     <application
         android:label="Gen-Lib"
+        android:usesCleartextTraffic="true"
         android:icon="@mipmap/ic_launcher">
 
         <activity

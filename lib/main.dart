@@ -72,6 +72,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:libraryqr/screens/alerts_screen.dart';
+import 'package:libraryqr/screens/user_wishlist_screen.dart';
 
 import 'screens/login_screen.dart';
 import 'screens/user_book_list_screen.dart';
@@ -141,6 +143,9 @@ class MyApp extends StatelessWidget {
           return UserBookListScreen(genre: genre);
         },
         '/bookList': (_) => const BookListScreen(),
+        '/alerts': (_) => const AlertsScreen(),
+        '/wishlist': (_) => const UserWishlistScreen(),
+
       },
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),

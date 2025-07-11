@@ -471,6 +471,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:libraryqr/screens/user_explore_screen.dart';
 
+import '../screens/ai_chat_screen.dart';
 import '../screens/book_list_screen.dart';
 import '../screens/borrowed_books_screen.dart';
 import '../screens/history_screen.dart';
@@ -479,6 +480,7 @@ import '../screens/alerts_screen.dart';
 import '../screens/penalty_screen.dart';
 import '../screens/user_home_screen.dart';
 import '../screens/user_profile.dart';
+import '../screens/user_wishlist_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   final VoidCallback onToggleTheme;
@@ -656,6 +658,18 @@ class AppDrawer extends StatelessWidget {
                     context,
                     MaterialPageRoute(builder: (_) => HistoryScreen(onToggleTheme: () {  },)),
                   ),
+                ),
+                _drawerItem(
+                  context: context,
+                  icon: Icons.favorite,
+                  label: 'Wishlist',
+                  onTap: () {
+                    Navigator.of(context).pop(); // Close drawer first
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const UserWishlistScreen()),
+                    );
+                  },
                 ),
               ],
             ),

@@ -57,6 +57,47 @@ class AdminReturnRequestsScreen extends StatelessWidget {
         : null;
 
     try {
+      // if (approve) {
+      //   await firestore.runTransaction((txn) async {
+      //     final bookSnap = await txn.get(bookRef);
+      //     final requestSnap = await txn.get(lendingRef);
+      //     if (!bookSnap.exists || !requestSnap.exists) throw Exception('Book or request not found');
+      //
+      //     final currentCount = bookSnap.get('count') ?? 0;
+      //
+      //     txn.update(bookRef, {
+      //       'count': currentCount + 1,
+      //       'isAvailable': true,
+      //     });
+      //
+      //     txn.update(lendingRef, {
+      //       'isReturned': true,
+      //       'isReturnRequest': false,
+      //       'returnRequestStatus': 'approved',
+      //       'processedAt': Timestamp.now(),
+      //     });
+      //
+      //     if (penaltyRef != null) {
+      //       txn.update(penaltyRef, {
+      //         'isPaid': true,
+      //       });
+      //     }
+      //   });
+      //
+      //   ScaffoldMessenger.of(context).showSnackBar(
+      //     const SnackBar(content: Text("Return approved ✅")),
+      //   );
+      // } else {
+      //   await lendingRef.update({
+      //     'isReturnRequest': false,
+      //     'returnRequestStatus': 'rejected',
+      //     'processedAt': Timestamp.now(),
+      //   });
+      //
+      //   ScaffoldMessenger.of(context).showSnackBar(
+      //     const SnackBar(content: Text("Return request rejected ❌")),
+      //   );
+      // }
       if (approve) {
         await firestore.runTransaction((txn) async {
           final bookSnap = await txn.get(bookRef);
@@ -64,6 +105,8 @@ class AdminReturnRequestsScreen extends StatelessWidget {
           if (!bookSnap.exists || !requestSnap.exists) throw Exception('Book or request not found');
 
           final currentCount = bookSnap.get('count') ?? 0;
+          final userId = requestSnap.get('userId');
+          final now = Timestamp.now();
 
           txn.update(bookRef, {
             'count': currentCount + 1,
@@ -74,7 +117,7 @@ class AdminReturnRequestsScreen extends StatelessWidget {
             'isReturned': true,
             'isReturnRequest': false,
             'returnRequestStatus': 'approved',
-            'processedAt': Timestamp.now(),
+            'processedAt': now,
           });
 
           if (penaltyRef != null) {
@@ -82,22 +125,47 @@ class AdminReturnRequestsScreen extends StatelessWidget {
               'isPaid': true,
             });
           }
+
+          final bookTitle = bookSnap.get('title') ?? 'a book';
+
+          await firestore.collection('alerts').add({
+            'userId': userId,
+            'bookId': bookId,
+            'isRead': false,
+            'timestamp': now,
+            'message': '✅ Your return request for "$bookTitle" has been approved!',
+          });
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Return approved ✅")),
         );
       } else {
+        final requestSnap = await lendingRef.get();
+        final userId = requestSnap.get('userId');
+        final bookSnap = await bookRef.get();
+        final bookTitle = bookSnap.get('title') ?? 'a book';
+        final now = Timestamp.now();
+
         await lendingRef.update({
           'isReturnRequest': false,
           'returnRequestStatus': 'rejected',
-          'processedAt': Timestamp.now(),
+          'processedAt': now,
+        });
+
+        await firestore.collection('alerts').add({
+          'userId': userId,
+          'bookId': bookId,
+          'isRead': false,
+          'timestamp': now,
+          'message': '❌ Your return request for "$bookTitle" was rejected.',
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Return request rejected ❌")),
         );
       }
+
     } catch (e) {
       debugPrint("❌ Error processing return: $e");
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Failed: $e")));

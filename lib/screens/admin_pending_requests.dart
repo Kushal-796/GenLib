@@ -44,6 +44,8 @@ class _AdminPendingRequestsState extends State<AdminPendingRequests> {
     final requestRef = _firestore.collection('lending_requests').doc(requestId);
     final bookRef = _firestore.collection('books').doc(bookId);
     final penaltyRef = _firestore.collection('penalties');
+    final bookTitle = (await _firestore.collection('books').doc(bookId).get())
+        .data()?['title'] ?? 'Unknown Book';
 
     try {
       final requestSnap = await requestRef.get();
@@ -113,6 +115,16 @@ class _AdminPendingRequestsState extends State<AdminPendingRequests> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Request ${status == 'approved' ? 'approved' : 'rejected'} successfully')),
       );
+      await _firestore.collection('alerts').add({
+        'userId': userId,
+        'bookId': bookId,
+        'isRead': false,
+        'timestamp': Timestamp.now(),
+        'message': status == 'approved'
+            ? '✅ Your request for "$bookTitle" has been approved!'
+            : '❌ Your request for "$bookTitle" was rejected.',
+      });
+
     } catch (e) {
       debugPrint("Error updating request: $e");
       ScaffoldMessenger.of(context).showSnackBar(

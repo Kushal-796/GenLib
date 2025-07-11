@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../widgets/app_drawer.dart';
+import 'ai_chat_screen.dart';
 import 'book_detail_screen.dart';
 
 class UserHomeScreen extends StatefulWidget {
@@ -146,6 +147,17 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           ),
         ),
       ),
+      // floatingActionButton: FloatingActionButton.extended(
+      //   onPressed: () {
+      //     Navigator.push(
+      //       context,
+      //       MaterialPageRoute(builder: (_) => const JotformChatScreen()),
+      //     );
+      //   },
+      //   icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
+      //   label: const Text("Ask AI"),
+      //   backgroundColor: const Color(0xFF00253A),
+      // ),
     );
   }
 
@@ -485,5 +497,4 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
       ],
     );
   }
-
 }
