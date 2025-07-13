@@ -1,11 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
 import '../widgets/admin_app_drawer.dart';
-import 'package:libraryqr/screens/admin_available_books_screen.dart'; // Make sure this import is correct
+import 'package:libraryqr/screens/admin_available_books_screen.dart';
 
 class AdminManageBooksScreen extends StatefulWidget {
   const AdminManageBooksScreen({super.key});
@@ -114,6 +114,72 @@ class _AdminManageBooksScreenState extends State<AdminManageBooksScreen> {
               }
             },
             child: const Text("Add Book"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _addExistingBookDialog(BuildContext context) async {
+    final bookIdController = TextEditingController();
+    final countController = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Add Existing Book Copies"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: bookIdController,
+              decoration: const InputDecoration(labelText: "Enter Book ID"),
+            ),
+            TextField(
+              controller: countController,
+              decoration: const InputDecoration(labelText: "No. of Copies to Add"),
+              keyboardType: TextInputType.number,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () async {
+              final bookId = bookIdController.text.trim();
+              final addCount = int.tryParse(countController.text.trim());
+
+              if (bookId.isNotEmpty && addCount != null && addCount > 0) {
+                final bookRef = FirebaseFirestore.instance.collection('books').doc(bookId);
+                final bookDoc = await bookRef.get();
+
+                if (bookDoc.exists) {
+                  final currentCount = bookDoc.data()?['count'] ?? 0;
+
+                  await bookRef.update({
+                    'count': currentCount + addCount,
+                    'isAvailable': true,
+                  });
+
+                  if (mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("📦 Added $addCount copies to '$bookId'")),
+                    );
+                  }
+                } else {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("❌ Book not found")),
+                  );
+                }
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("⚠️ Enter valid Book ID and count")),
+                );
+              }
+            },
+            child: const Text("Add Copies"),
           ),
         ],
       ),
@@ -232,6 +298,27 @@ class _AdminManageBooksScreenState extends State<AdminManageBooksScreen> {
                             label: const Text("Delete Book", style: TextStyle(color: Colors.white)),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.red[600],
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              textStyle: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () => _addExistingBookDialog(context),
+                            icon: const Icon(Icons.library_add, color: Colors.white),
+                            label: const Text("Add Existing Book", style: TextStyle(color: Colors.white)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue[700],
                               elevation: 0,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
