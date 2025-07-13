@@ -22,7 +22,7 @@ class UserBookListScreen extends StatelessWidget {
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.chevron_right, color: Color(0xFF00253A), size: 32),
+          icon: const Icon(Icons.chevron_left, color: Color(0xFF00253A), size: 32),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(

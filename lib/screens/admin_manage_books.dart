@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
 import '../widgets/admin_app_drawer.dart';
+import 'package:libraryqr/screens/admin_available_books_screen.dart'; // Make sure this import is correct
 
 class AdminManageBooksScreen extends StatefulWidget {
   const AdminManageBooksScreen({super.key});
@@ -163,83 +164,91 @@ class _AdminManageBooksScreenState extends State<AdminManageBooksScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF3FAF8),
-      drawer: const AdminAppDrawer(),
-      body: SafeArea(
-        child: Builder(
-          builder: (context) => Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Dad-style AppBar
-                Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () => Scaffold.of(context).openDrawer(),
-                      child: const Icon(Icons.chevron_right, size: 32, color: Color(0xFF00253A)),
-                    ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'Manage Books',
-                      style: TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF00253A),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                Center(
-                  child: Column(
+    return WillPopScope(
+      onWillPop: () async {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const AdminAvailableBooksScreen()),
+        );
+        return false;
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF3FAF8),
+        drawer: const AdminAppDrawer(),
+        body: SafeArea(
+          child: Builder(
+            builder: (context) => Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Dad-style AppBar
+                  Row(
                     children: [
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () => _addBookDialog(context),
-                          icon: const Icon(Icons.add, color: Colors.white),
-                          label: const Text("Add Book", style: TextStyle(color: Colors.white)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green[700],
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            textStyle: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
+                      GestureDetector(
+                        onTap: () => Scaffold.of(context).openDrawer(),
+                        child: const Icon(Icons.chevron_right, size: 32, color: Color(0xFF00253A)),
                       ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () => _deleteBookDialog(context),
-                          icon: const Icon(Icons.delete, color: Colors.white),
-                          label: const Text("Delete Book", style: TextStyle(color: Colors.white)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red[600],
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            textStyle: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Manage Books',
+                        style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF00253A),
                         ),
                       ),
                     ],
                   ),
-                )
-              ],
+                  const SizedBox(height: 24),
+                  Center(
+                    child: Column(
+                      children: [
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () => _addBookDialog(context),
+                            icon: const Icon(Icons.add, color: Colors.white),
+                            label: const Text("Add Book", style: TextStyle(color: Colors.white)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green[700],
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              textStyle: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () => _deleteBookDialog(context),
+                            icon: const Icon(Icons.delete, color: Colors.white),
+                            label: const Text("Delete Book", style: TextStyle(color: Colors.white)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red[600],
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              textStyle: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                ],
+              ),
             ),
           ),
         ),

@@ -27,6 +27,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   String? _imageUrl;
   String _genre = 'Unknown';
   int _copies = 0;
+  int _nob = 0; // number of books user has
 
   final _firestore = FirebaseFirestore.instance;
   final _auth = FirebaseAuth.instance;
@@ -37,6 +38,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     _checkIfRequestAlreadyMade();
     _fetchBookDetails();
     _checkIfInWishlist();
+    _fetchUserBookCount();
   }
 
   Future<void> _fetchBookDetails() async {
@@ -71,6 +73,18 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       setState(() {
         _requestMade = true;
       });
+    }
+  }
+
+  Future<void> _fetchUserBookCount() async {
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) return;
+
+    final doc = await _firestore.collection('users').doc(userId).get();
+    if (doc.exists) {
+      final data = doc.data()!;
+      _nob = data['nob'] ?? 0;
+      setState(() {});
     }
   }
 
@@ -114,6 +128,9 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     setState(() => _isLoading = true);
 
     try {
+      final userRef = _firestore.collection('users').doc(user.uid);
+
+      // Step 1: Add the lending request
       await _firestore.collection('lending_requests').add({
         'userId': user.uid,
         'bookId': widget.bookId,
@@ -122,8 +139,19 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         'isReturned': false,
       });
 
+      // Step 2: Update the user's `nob` count
+      final userSnap = await userRef.get();
+      int currentNob = 0;
+      if (userSnap.exists) {
+        currentNob = userSnap.data()?['nob'] ?? 0;
+      }
+
+      await userRef.update({'nob': currentNob + 1});
+
+      // Step 3: Show success
       setState(() {
         _requestMade = true;
+        _nob = currentNob + 1; // Update UI state too
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -138,8 +166,11 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
+    final isBorrowDisabled = _requestMade || !widget.isAvailable || _nob >= 5;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF3FAF8),
       appBar: AppBar(
@@ -232,16 +263,12 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                   Expanded(
                     child: ElevatedButton.icon(
                       icon: Icon(
-                        _requestMade || !widget.isAvailable
-                            ? Icons.check_circle
-                            : Icons.send,
+                        isBorrowDisabled ? Icons.block : Icons.send,
                         color: Colors.white,
                       ),
-                      onPressed: (_requestMade || !widget.isAvailable)
-                          ? null
-                          : _sendBorrowRequest,
+                      onPressed: isBorrowDisabled ? null : _sendBorrowRequest,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _requestMade || !widget.isAvailable
+                        backgroundColor: isBorrowDisabled
                             ? Colors.grey
                             : const Color(0xFF00253A),
                         shape: RoundedRectangleBorder(
@@ -249,7 +276,9 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                         ),
                       ),
                       label: Text(
-                        _requestMade || !widget.isAvailable ? "Request Made" : "Borrow",
+                        isBorrowDisabled
+                            ? (_nob >= 5 ? "Limit Reached" : "Request Made")
+                            : "Borrow",
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,

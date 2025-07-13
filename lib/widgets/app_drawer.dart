@@ -163,15 +163,15 @@ class AppDrawer extends StatelessWidget {
                     MaterialPageRoute(builder: (_) => BorrowedBooksScreen()),
                   ),
                 ),
-                _drawerItem(
-                  context: context,
-                  icon: Icons.notifications,
-                  label: 'Alerts',
-                  onTap: () => Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (_) => AlertsScreen()),
-                  ),
-                ),
+                // _drawerItem(
+                //   context: context,
+                //   icon: Icons.notifications,
+                //   label: 'Alerts',
+                //   onTap: () => Navigator.pushReplacement(
+                //     context,
+                //     MaterialPageRoute(builder: (_) => AlertsScreen()),
+                //   ),
+                // ),
                 _drawerItem(
                   context: context,
                   icon: Icons.attach_money,

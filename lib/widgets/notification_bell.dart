@@ -11,6 +11,13 @@ class NotificationBell extends StatelessWidget {
   Widget build(BuildContext context) {
     final userId = FirebaseAuth.instance.currentUser?.uid;
 
+    if (userId == null) {
+      return IconButton(
+        icon: const Icon(Icons.notifications, color: Colors.black),
+        onPressed: onTap,
+      );
+    }
+
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('alerts')
@@ -18,9 +25,10 @@ class NotificationBell extends StatelessWidget {
           .where('isRead', isEqualTo: false)
           .snapshots(),
       builder: (context, snapshot) {
-        bool hasUnread = snapshot.hasData && snapshot.data!.docs.isNotEmpty;
+        final hasUnread = snapshot.hasData && snapshot.data!.docs.isNotEmpty;
 
         return Stack(
+          clipBehavior: Clip.none,
           children: [
             IconButton(
               icon: const Icon(Icons.notifications, color: Colors.black),
@@ -28,8 +36,8 @@ class NotificationBell extends StatelessWidget {
             ),
             if (hasUnread)
               Positioned(
-                right: 8,
-                top: 8,
+                top: 10,
+                right: 10,
                 child: Container(
                   width: 10,
                   height: 10,

@@ -21,26 +21,6 @@ class AdminUsersBorrowedBooksScreen extends StatelessWidget {
     }
   }
 
-  Future<Map<String, dynamic>?> _fetchPenaltyData(String bookId) async {
-    try {
-      final query = await FirebaseFirestore.instance
-          .collection('penalties')
-          .where('bookId', isEqualTo: bookId)
-          .where('userId', isEqualTo: userId)
-          .limit(1)
-          .get();
-
-      if (query.docs.isNotEmpty) {
-        return query.docs.first.data();
-      } else {
-        return null;
-      }
-    } catch (e) {
-      debugPrint('Error fetching penalty data: $e');
-      return null;
-    }
-  }
-
   Future<void> _sendAlert(BuildContext context, String bookId) async {
     final TextEditingController _controller = TextEditingController();
 
@@ -108,7 +88,6 @@ class AdminUsersBorrowedBooksScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Dad's AppBar with back button
               Row(
                 children: [
                   GestureDetector(
@@ -163,8 +142,10 @@ class AdminUsersBorrowedBooksScreen extends StatelessWidget {
                         final bookId = requestData['bookId'];
                         final timestamp = requestData['timestamp'] as Timestamp?;
                         final returnStatus = _getReturnStatus(requestData);
+                        final penaltyAmount = requestData['penaltyAmount'];
+                        final isPaid = requestData['isPaid'] == true;
 
-                        return FutureBuilder<Map<String, dynamic>?>(
+                        return FutureBuilder<Map<String, dynamic>?> (
                           future: _fetchBookData(bookId),
                           builder: (context, bookSnapshot) {
                             if (!bookSnapshot.hasData || bookSnapshot.connectionState == ConnectionState.waiting) {
@@ -178,60 +159,51 @@ class AdminUsersBorrowedBooksScreen extends StatelessWidget {
                                 ? '${timestamp.toDate().day}/${timestamp.toDate().month}/${timestamp.toDate().year}'
                                 : 'Unknown Date';
 
-                            return FutureBuilder<Map<String, dynamic>?>(
-                              future: _fetchPenaltyData(bookId),
-                              builder: (context, penaltySnapshot) {
-                                final penalty = penaltySnapshot.data;
-                                final penaltyAmount = penalty?['penaltyAmount'];
-                                final isPaid = penalty?['isPaid'] == true;
-
-                                return Container(
-                                  margin: const EdgeInsets.only(bottom: 10),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: const [
-                                      BoxShadow(
-                                        color: Colors.black12,
-                                        blurRadius: 4,
-                                        offset: Offset(0, 2),
-                                      ),
-                                    ],
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 10),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Colors.black12,
+                                    blurRadius: 4,
+                                    offset: Offset(0, 2),
                                   ),
-                                  child: ListTile(
-                                    contentPadding: const EdgeInsets.all(16),
-                                    leading: const Icon(Icons.book, color: Colors.blueGrey),
-                                    title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                    subtitle: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        const SizedBox(height: 4),
-                                        Text('Author: $author'),
-                                        Text('Borrowed on: $dateBorrowed'),
-                                        Text('Status: $returnStatus'),
-                                        if (penalty != null)
-                                          Text(
-                                            'Penalty: ₹$penaltyAmount - ${isPaid ? "Paid" : "Unpaid"}',
-                                            style: TextStyle(
-                                              color: isPaid ? Colors.green : Colors.red,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                    trailing: ElevatedButton.icon(
-                                      icon: const Icon(Icons.warning_amber_rounded, size: 18),
-                                      label: const Text("Alert"),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.redAccent,
-                                        minimumSize: const Size(80, 36),
-                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                ],
+                              ),
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.all(16),
+                                leading: const Icon(Icons.book, color: Colors.blueGrey),
+                                title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const SizedBox(height: 4),
+                                    Text('Author: $author'),
+                                    Text('Borrowed on: $dateBorrowed'),
+                                    Text('Status: $returnStatus'),
+                                    if (penaltyAmount != null)
+                                      Text(
+                                        'Penalty: ₹$penaltyAmount - ${isPaid ? "Paid" : "Unpaid"}',
+                                        style: TextStyle(
+                                          color: isPaid ? Colors.green : Colors.red,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
-                                      onPressed: () => _sendAlert(context, bookId),
-                                    ),
+                                  ],
+                                ),
+                                trailing: ElevatedButton.icon(
+                                  icon: const Icon(Icons.warning_amber_rounded, size: 18),
+                                  label: const Text("Alert"),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.redAccent,
+                                    minimumSize: const Size(80, 36),
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                   ),
-                                );
-                              },
+                                  onPressed: () => _sendAlert(context, bookId),
+                                ),
+                              ),
                             );
                           },
                         );

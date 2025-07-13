@@ -4,9 +4,9 @@ import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:slide_to_act/slide_to_act.dart';
 
 class PenaltyCheckoutPage extends StatefulWidget {
-  final String penaltyId;
+  final String lendingRequestId;
 
-  const PenaltyCheckoutPage({super.key, required this.penaltyId});
+  const PenaltyCheckoutPage({super.key, required this.lendingRequestId});
 
   @override
   State<PenaltyCheckoutPage> createState() => _PenaltyCheckoutPageState();
@@ -14,7 +14,7 @@ class PenaltyCheckoutPage extends StatefulWidget {
 
 class _PenaltyCheckoutPageState extends State<PenaltyCheckoutPage> {
   late Razorpay _razorpay;
-  DocumentSnapshot? penaltyDetails;
+  DocumentSnapshot? lendingDetails;
   DocumentSnapshot? bookDetails;
 
   @override
@@ -35,32 +35,26 @@ class _PenaltyCheckoutPageState extends State<PenaltyCheckoutPage> {
 
   Future<void> _fetchDetails() async {
     try {
-      final penaltyDoc = await FirebaseFirestore.instance
-          .collection('penalties')
-          .doc(widget.penaltyId)
+      final lendingDoc = await FirebaseFirestore.instance
+          .collection('lending_requests')
+          .doc(widget.lendingRequestId)
           .get();
 
-      final bookId = penaltyDoc['bookId'];
+      final bookId = lendingDoc['bookId'];
 
-      final bookQuery = await FirebaseFirestore.instance
-          .collection('books')
-          .where('bookId', isEqualTo: bookId)
-          .limit(1)
-          .get();
+      final bookDoc = await FirebaseFirestore.instance.collection('books').doc(bookId).get();
 
-      if (bookQuery.docs.isNotEmpty) {
-        setState(() {
-          penaltyDetails = penaltyDoc;
-          bookDetails = bookQuery.docs.first;
-        });
-      }
+      setState(() {
+        lendingDetails = lendingDoc;
+        bookDetails = bookDoc;
+      });
     } catch (e) {
       debugPrint('Error fetching details: $e');
     }
   }
 
-  void _startPayment() {
-    final amount = penaltyDetails!['penaltyAmount'];
+  Future<void> _startPayment() async {
+    final amount = lendingDetails!['penaltyAmount'];
     final title = bookDetails!['title'];
 
     var options = {
@@ -79,11 +73,12 @@ class _PenaltyCheckoutPageState extends State<PenaltyCheckoutPage> {
     }
   }
 
+
   void _handlePaymentSuccess(PaymentSuccessResponse response) async {
     try {
       await FirebaseFirestore.instance
-          .collection('penalties')
-          .doc(widget.penaltyId)
+          .collection('lending_requests')
+          .doc(widget.lendingRequestId)
           .update({'isPaid': true});
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -127,7 +122,7 @@ class _PenaltyCheckoutPageState extends State<PenaltyCheckoutPage> {
         elevation: 0,
         iconTheme: const IconThemeData(color: Color(0xFF00253A)),
       ),
-      body: (penaltyDetails == null || bookDetails == null)
+      body: (lendingDetails == null || bookDetails == null)
           ? const Center(child: CircularProgressIndicator())
           : Padding(
         padding: const EdgeInsets.all(20),
@@ -151,7 +146,8 @@ class _PenaltyCheckoutPageState extends State<PenaltyCheckoutPage> {
               Center(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: bookDetails!['imageUrl'] != null && bookDetails!['imageUrl'].toString().isNotEmpty
+                  child: bookDetails!['imageUrl'] != null &&
+                      bookDetails!['imageUrl'].toString().isNotEmpty
                       ? Image.network(
                     bookDetails!['imageUrl'],
                     width: 180,
@@ -182,8 +178,6 @@ class _PenaltyCheckoutPageState extends State<PenaltyCheckoutPage> {
                   ),
                 ),
               ),
-
-
               const SizedBox(height: 24),
               Text(
                 '📕 Title: ${bookDetails!['title']}',
@@ -196,12 +190,12 @@ class _PenaltyCheckoutPageState extends State<PenaltyCheckoutPage> {
               ),
               const SizedBox(height: 10),
               Text(
-                '🆔 Book ID: ${penaltyDetails!['bookId']}',
+                '🆔 Book ID: ${lendingDetails!['bookId']}',
                 style: const TextStyle(fontSize: 16),
               ),
               const SizedBox(height: 10),
               Text(
-                '🕒 Lended on: ${_formatTimestamp(penaltyDetails!['timestamp'])}',
+                '🕒 Lended on: ${_formatTimestamp(lendingDetails!['timestamp'])}',
                 style: const TextStyle(fontSize: 16),
               ),
               const SizedBox(height: 30),
@@ -210,15 +204,13 @@ class _PenaltyCheckoutPageState extends State<PenaltyCheckoutPage> {
                 innerColor: Colors.white,
                 elevation: 1,
                 sliderButtonIcon: const Icon(Icons.payment, color: Colors.black),
-                text: 'Slide to Pay ₹${penaltyDetails!['penaltyAmount']}',
+                text: 'Slide to Pay ₹${lendingDetails!['penaltyAmount']}',
                 textStyle: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
                 ),
-                onSubmit: () {
-                  _startPayment();
-                },
+                onSubmit: _startPayment,
               ),
             ],
           ),

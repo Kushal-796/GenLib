@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:libraryqr/screens/admin_users_borrowed_books_screen.dart';
+import 'package:libraryqr/screens/admin_available_books_screen.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -56,21 +57,10 @@ class _AdminUsersListScreenState extends State<AdminUsersListScreen> {
       final bookTitle = bookData['title'] ?? 'Unknown';
       final author = bookData['author'] ?? 'Unknown';
 
-      final penaltySnapshot = await FirebaseFirestore.instance
-          .collection('penalties')
-          .where('userId', isEqualTo: userId)
-          .where('bookId', isEqualTo: bookId)
-          .orderBy('timestamp', descending: true)
-          .limit(1)
-          .get();
+      final amount = (data['penaltyAmount'] ?? 0).toDouble();
+      final isPaid = data['isPaid'] == true;
+      final penalty = "${amount.toStringAsFixed(0)} (${isPaid ? 'Paid' : 'Unpaid'})";
 
-      String penalty = "0 (Paid)";
-      if (penaltySnapshot.docs.isNotEmpty) {
-        final penaltyData = penaltySnapshot.docs.first.data();
-        final amount = (penaltyData['penaltyAmount'] ?? 0).toDouble();
-        final isPaid = penaltyData['isPaid'] == true;
-        penalty = "${amount.toStringAsFixed(0)} (${isPaid ? 'Paid' : 'Unpaid'})";
-      }
 
       rows.add([
         serial.toString(),
@@ -175,114 +165,122 @@ class _AdminUsersListScreenState extends State<AdminUsersListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF3FAF8),
-      drawer: AdminAppDrawer(),
-      body: SafeArea(
-        child: Builder(
-          builder: (context) => Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Dad-style AppBar
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                child: Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () => Scaffold.of(context).openDrawer(),
-                      child: const Icon(Icons.chevron_right, size: 32, color: Color(0xFF00253A)),
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text(
-                        "Users List",
-                        style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF00253A),
+    return WillPopScope(
+      onWillPop: () async {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const AdminAvailableBooksScreen()),
+        );
+        return false;
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF3FAF8),
+        drawer: AdminAppDrawer(),
+        body: SafeArea(
+          child: Builder(
+            builder: (context) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Dad-style AppBar
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () => Scaffold.of(context).openDrawer(),
+                        child: const Icon(Icons.chevron_right, size: 32, color: Color(0xFF00253A)),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          "Users List",
+                          style: TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF00253A),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Search Bar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    labelText: "Search by name or email",
-                    prefixIcon: const Icon(Icons.search),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ],
                   ),
-                  onChanged: (value) {
-                    setState(() {
-                      _searchQuery = value.toLowerCase().trim();
-                    });
-                  },
                 ),
-              ),
 
-              const SizedBox(height: 12),
+                const SizedBox(height: 16),
 
-              // User List
-              Expanded(
-                child: StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('lending_requests')
-                      .where('status', isEqualTo: 'approved')
-                      .snapshots(),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData || snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-
-                    final requests = snapshot.data!.docs;
-                    final Set<String> uniqueUserIds = requests.map((doc) => doc['userId'] as String).toSet();
-
-                    return FutureBuilder<List<Widget>>(
-                      future: _buildUserCards(uniqueUserIds),
-                      builder: (context, snapshot) {
-                        if (!snapshot.hasData) {
-                          return const Center(child: CircularProgressIndicator());
-                        }
-                        final cards = snapshot.data!;
-                        return cards.isEmpty
-                            ? const Center(child: Text("No matching users found."))
-                            : ListView(children: cards);
-                      },
-                    );
-                  },
+                // Search Bar
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      labelText: "Search by name or email",
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        _searchQuery = value.toLowerCase().trim();
+                      });
+                    },
+                  ),
                 ),
-              ),
-            ],
+
+                const SizedBox(height: 12),
+
+                // User List
+                Expanded(
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('lending_requests')
+                        .where('status', isEqualTo: 'approved')
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData || snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      final requests = snapshot.data!.docs;
+                      final Set<String> uniqueUserIds = requests.map((doc) => doc['userId'] as String).toSet();
+
+                      return FutureBuilder<List<Widget>>(
+                        future: _buildUserCards(uniqueUserIds),
+                        builder: (context, snapshot) {
+                          if (!snapshot.hasData) {
+                            return const Center(child: CircularProgressIndicator());
+                          }
+                          final cards = snapshot.data!;
+                          return cards.isEmpty
+                              ? const Center(child: Text("No matching users found."))
+                              : ListView(children: cards);
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: const Color(0xFF00253A),
-        icon: const Icon(Icons.download, color: Colors.white),
-        label: const Text(
-          "Download PDF",
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
+        floatingActionButton: FloatingActionButton.extended(
+          backgroundColor: const Color(0xFF00253A),
+          icon: const Icon(Icons.download, color: Colors.white),
+          label: const Text(
+            "Download PDF",
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+            ),
           ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 2,
+          onPressed: () async {
+            await _generateExcelStylePdf();
+          },
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        elevation: 2,
-        onPressed: () async {
-          await _generateExcelStylePdf();
-        },
       ),
-
     );
   }
 }
