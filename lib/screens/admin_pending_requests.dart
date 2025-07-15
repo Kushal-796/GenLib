@@ -15,6 +15,7 @@ class _AdminPendingRequestsState extends State<AdminPendingRequests> {
 
   Future<void> _refreshData() async {
     await Future.delayed(const Duration(milliseconds: 500));
+    setState(() {});
   }
 
   Future<Map<String, String>> _getBookTitleAndUserName(String bookId, String userId) async {
@@ -48,88 +49,76 @@ class _AdminPendingRequestsState extends State<AdminPendingRequests> {
 
     try {
       final requestSnap = await requestRef.get();
-      final requestData = requestSnap.data();
-      final isReturnRequest = requestData?['isReturnRequest'] ?? false;
-      final userId = requestData?['userId'];
+      final userId = requestSnap.data()?['userId'];
 
-      if (isReturnRequest) {
-        if (status == 'approved') {
-          await _firestore.runTransaction((transaction) async {
-            final bookSnap = await transaction.get(bookRef);
-            if (!bookSnap.exists) throw Exception("Book not found");
+      if (status == 'approved') {
+        await _firestore.runTransaction((transaction) async {
+          final bookSnap = await transaction.get(bookRef);
+          if (!bookSnap.exists) throw Exception("Book not found");
 
-            final currentCount = bookSnap.get('count') ?? 0;
-            final newCount = currentCount + 1;
+          final currentCount = bookSnap.get('count') ?? 0;
+
+          if (currentCount > 0) {
+            final newCount = currentCount - 1;
+            final now = Timestamp.now();
 
             transaction.update(bookRef, {
               'count': newCount,
-              'isAvailable': true,
+              'isAvailable': newCount > 0,
             });
 
             transaction.update(requestRef, {
-              'returnRequestStatus': 'approved',
-              'isReturned': true,
+              'status': 'approved',
+              'approvedAt': now,
+              'penaltyAmount': 0,
+              'isPaid': false,
             });
-          });
-        } else {
-          await requestRef.update({
-            'returnRequestStatus': 'rejected',
-          });
-        }
+
+            await _firestore.collection('alerts').add({
+              'userId': userId,
+              'bookId': bookId,
+              'isRead': false,
+              'timestamp': Timestamp.now(),
+              'message': '✅ Your request for "$bookTitle" has been approved!',
+            });
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Request approved successfully')),
+            );
+          } else {
+            await requestRef.delete();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('❌ Book unavailable. Request deleted.')),
+            );
+          }
+        });
       } else {
-        if (status == 'approved') {
-          await _firestore.runTransaction((transaction) async {
-            final bookSnap = await transaction.get(bookRef);
-            if (!bookSnap.exists) throw Exception("Book not found");
+        await requestRef.update({'status': status});
 
-            final currentCount = bookSnap.get('count') ?? 0;
-            if (currentCount > 0) {
-              final newCount = currentCount - 1;
-              final now = Timestamp.now();
+        if (status == 'rejected') {
+          final userRef = _firestore.collection('users').doc(userId);
+          final userSnap = await userRef.get();
 
-              transaction.update(bookRef, {'count': newCount});
-              transaction.update(requestRef, {
-                'status': 'approved',
-                'approvedAt': now,
-                'penaltyAmount': 0,
-                'isPaid': false,
-              });
-            } else {
-              throw Exception("No copies available to approve this request.");
-            }
-          });
-        } else {
-          await requestRef.update({'status': status});
-
-          // 🔻 Decrease nob by 1 if status is rejected
-          if (status == 'rejected') {
-            final userRef = _firestore.collection('users').doc(userId);
-            final userSnap = await userRef.get();
-
-            if (userSnap.exists) {
-              int currentNob = userSnap.data()?['nob'] ?? 0;
-              if (currentNob > 0) {
-                await userRef.update({'nob': currentNob - 1});
-              }
+          if (userSnap.exists) {
+            int currentNob = userSnap.data()?['nob'] ?? 0;
+            if (currentNob > 0) {
+              await userRef.update({'nob': currentNob - 1});
             }
           }
         }
+
+        await _firestore.collection('alerts').add({
+          'userId': userId,
+          'bookId': bookId,
+          'isRead': false,
+          'timestamp': Timestamp.now(),
+          'message': '❌ Your request for "$bookTitle" was rejected.',
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Request ${status == 'approved' ? 'approved' : 'rejected'} successfully')),
+        );
       }
-
-      // Alert creation
-      await _firestore.collection('alerts').add({
-        'userId': userId,
-        'bookId': bookId,
-        'isRead': false,
-        'timestamp': Timestamp.now(),
-        'message': status == 'approved'
-            ? '✅ Your request for "$bookTitle" has been approved!'
-            : '❌ Your request for "$bookTitle" was rejected.',
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Request ${status == 'approved' ? 'approved' : 'rejected'} successfully')),
-      );
     } catch (e) {
       debugPrint("Error updating request: $e");
       ScaffoldMessenger.of(context).showSnackBar(
@@ -220,53 +209,65 @@ class _AdminPendingRequestsState extends State<AdminPendingRequests> {
                                   final bookTitle = snapshot.data?['bookTitle'] ?? 'Loading...';
                                   final userName = snapshot.data?['userName'] ?? 'Loading...';
 
-                                  return Container(
-                                    margin: const EdgeInsets.only(bottom: 10),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(16),
-                                      boxShadow: const [
-                                        BoxShadow(
-                                          color: Colors.black12,
-                                          blurRadius: 4,
-                                          offset: Offset(0, 2),
-                                        ),
-                                      ],
-                                    ),
-                                    child: ListTile(
-                                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                      leading: const Icon(Icons.pending_actions, color: Colors.orange),
-                                      title: Text(
-                                        bookTitle,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                          color: Color(0xFF00253A),
-                                        ),
-                                      ),
-                                      subtitle: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          const SizedBox(height: 4),
-                                          Text("User: $userName"),
-                                          const SizedBox(height: 4),
-                                          Text("Requested on: $formattedDate"),
-                                        ],
-                                      ),
-                                      trailing: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          IconButton(
-                                            icon: const Icon(Icons.check, color: Colors.green),
-                                            onPressed: () => _updateRequest(request.id, bookId, 'approved'),
+                                  return FutureBuilder<DocumentSnapshot>(
+                                    future: _firestore.collection('books').doc(bookId).get(),
+                                    builder: (context, bookSnap) {
+                                      if (bookSnap.hasData && (bookSnap.data?.exists ?? false)) {
+                                        final isAvailable = bookSnap.data?.get('isAvailable') ?? false;
+                                        if (!isAvailable) return const SizedBox();
+
+                                        return Container(
+                                          margin: const EdgeInsets.only(bottom: 10),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(16),
+                                            boxShadow: const [
+                                              BoxShadow(
+                                                color: Colors.black12,
+                                                blurRadius: 4,
+                                                offset: Offset(0, 2),
+                                              ),
+                                            ],
                                           ),
-                                          IconButton(
-                                            icon: const Icon(Icons.close, color: Colors.red),
-                                            onPressed: () => _updateRequest(request.id, bookId, 'rejected'),
+                                          child: ListTile(
+                                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                            leading: const Icon(Icons.pending_actions, color: Colors.orange),
+                                            title: Text(
+                                              bookTitle,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16,
+                                                color: Color(0xFF00253A),
+                                              ),
+                                            ),
+                                            subtitle: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                const SizedBox(height: 4),
+                                                Text("User: $userName"),
+                                                const SizedBox(height: 4),
+                                                Text("Requested on: $formattedDate"),
+                                              ],
+                                            ),
+                                            trailing: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                IconButton(
+                                                  icon: const Icon(Icons.check, color: Colors.green),
+                                                  onPressed: () => _updateRequest(request.id, bookId, 'approved'),
+                                                ),
+                                                IconButton(
+                                                  icon: const Icon(Icons.close, color: Colors.red),
+                                                  onPressed: () => _updateRequest(request.id, bookId, 'rejected'),
+                                                ),
+                                              ],
+                                            ),
                                           ),
-                                        ],
-                                      ),
-                                    ),
+                                        );
+                                      } else {
+                                        return const SizedBox();
+                                      }
+                                    },
                                   );
                                 },
                               );
