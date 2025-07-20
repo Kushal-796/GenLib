@@ -1,5 +1,9 @@
 {
   "projects": {
-    "default": "gen-lib"
-  }
+    "default": "gen-lib",
+    "GeLib": "gen-lib-896e5",
+    "GenLib": "gen-lib-896e5"
+  },
+  "targets": {},
+  "etags": {}
 }
