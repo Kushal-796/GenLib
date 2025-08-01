@@ -12,6 +12,15 @@ class PenaltyScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final userId = FirebaseAuth.instance.currentUser?.uid;
 
+    // Handle case where userId might be null (e.g., user not logged in)
+    if (userId == null) {
+      return const Scaffold(
+        body: Center(
+          child: Text("Please log in to view your penalties."),
+        ),
+      );
+    }
+
     return PopScope(
       canPop: false,
       onPopInvoked: (didPop) {
@@ -21,7 +30,7 @@ class PenaltyScreen extends StatelessWidget {
       },
       child: Scaffold(
         backgroundColor: const Color(0xFFF3FAF8),
-        drawer: AppDrawer(onToggleTheme: () {}),
+        drawer: AppDrawer(onToggleTheme: () {}), // Assuming onToggleTheme is required
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -81,6 +90,7 @@ class PenaltyScreen extends StatelessWidget {
                 .collection('lending_requests')
                 .where('userId', isEqualTo: userId)
                 .where('penaltyAmount', isGreaterThan: 0)
+                .where('isPaid', isEqualTo: false) // <--- ADDED THIS LINE
                 .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -88,7 +98,8 @@ class PenaltyScreen extends StatelessWidget {
               }
 
               if (snapshot.hasError) {
-                return Center(child: Text("Error: \${snapshot.error}"));
+                // Fixed string interpolation for error message
+                return Center(child: Text("Error: ${snapshot.error}"));
               }
 
               final docs = snapshot.data?.docs ?? [];
@@ -110,6 +121,12 @@ class PenaltyScreen extends StatelessWidget {
                   final penaltyAmount = data['penaltyAmount'] ?? 0;
                   final lendingRequestId = docs[index].id;
                   final formattedTime = DateFormat.yMMMd().add_jm().format(timestamp.toDate());
+
+                  // No need for a complex 'if' condition here because the StreamBuilder already filters.
+                  // The UI logic for the button remains the same, but 'isPaid' will always be false for these items.
+                  // You might still want to check 'isReturnRequest' as that defines whether a "Pay" button makes sense.
+                  final isReturnRequest = data['isReturnRequest'] == true;
+
 
                   return Container(
                     margin: const EdgeInsets.symmetric(vertical: 10),
@@ -170,22 +187,10 @@ class PenaltyScreen extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(height: 8),
-                              if (data['isReturnRequest'] == true)
-                                data['isPaid'] == true
-                                    ? ElevatedButton(
-                                  onPressed: null,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.grey.shade400,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                                    textStyle: const TextStyle(fontSize: 12),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                  ),
-                                  child: const Text("Paid"),
-                                )
-                                    : ElevatedButton(
+                              // Since StreamBuilder already filters for isPaid=false,
+                              // we only need to decide if we show "Pay" or "N/A"
+                              if (isReturnRequest) // Only show pay button if it's a return request
+                                ElevatedButton(
                                   onPressed: () {
                                     Navigator.push(
                                       context,
@@ -206,7 +211,11 @@ class PenaltyScreen extends StatelessWidget {
                                     ),
                                   ),
                                   child: const Text("Pay"),
-                                ),
+                                )
+                              else
+                              // Optionally show something if it's not a return request but still has a penalty
+                              // (e.g., a "Pending Admin Review" or just hide the button)
+                                const Text("Pending Admin Action", style: TextStyle(fontSize: 12, color: Colors.grey)),
                             ],
                           ),
                         ],
